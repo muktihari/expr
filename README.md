@@ -2,6 +2,7 @@
 
 [![expr](https://img.shields.io/badge/go-reference-blue.svg?style=flat)](https://pkg.go.dev/github.com/muktihari/expr)
 [![Go Report Card](https://goreportcard.com/badge/github.com/muktihari/expr?)](https://goreportcard.com/report/github.com/muktihari/expr)
+[![Travis Widget](https://travis-ci.org/muktihari/expr.svg?branch=master)](https://travis-ci.org/github/muktihari/expr)
 
 Expr is a string expression parser in go. Not a fancy eval, just a simple and lightweight expr parser.
 
