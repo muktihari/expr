@@ -20,7 +20,7 @@ Expr is a string expression parser in go. Not a fancy eval, just a simple and li
     if err != nil {
         panic(err) // err is error invalid expression
     }
-    fmt.Println("%v", v) // true
+    fmt.Printf("%t", v) // true
 ```
 
 #### Float64
@@ -30,7 +30,7 @@ Expr is a string expression parser in go. Not a fancy eval, just a simple and li
     if err != nil {
         panic(err)
     }
-    fmt.Println("%v", v) // 82.56789
+    fmt.Printf("%f", v) // 82.56789
 ```
 
 #### Integer
@@ -40,7 +40,7 @@ Expr is a string expression parser in go. Not a fancy eval, just a simple and li
     if err != nil {
         panic(err)
     }
-    fmt.Println("%v", v) // 82
+    fmt.Printf("%d", v) // 82
 ```
 
 *simple, isn't it?*
