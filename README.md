@@ -14,8 +14,11 @@ Expr is a string expression parser in go. Not a fancy eval, just a simple and li
 
 ## Usage
 #### Boolean
-- Bool parses the given expr string into boolean as a result. e.g: "1 < 2" -> true, "1 > 2" -> false, "true || false" -> true.
-- However, arithmetic is not supported at the moment, it WON'T DO "1 + 2 > 1" -> true [X]
+- Bool parses the given expr string into boolean as a result. e.g:
+    - "1 < 2" -> true
+    - "1 > 2" -> false
+    - "true || false" -> true
+- However, arithmetic is not supported at the moment, **it WON'T DO "1 + 2 > 1" -> true [X]***
 - Supported operators:
     - Comparison: [==, !=, <, <=, >, >=]
     - Logical: [&&, ||]
@@ -29,7 +32,9 @@ Expr is a string expression parser in go. Not a fancy eval, just a simple and li
 ```
 
 #### Float64
-- Float64 parses the given expr string into float64 as a result . e.g: "2 + 2" -> 4, "2.2 + 2" -> 4.2
+- Float64 parses the given expr string into float64 as a result. e.g:
+    - "2 + 2" -> 4
+    - "2.2 + 2" -> 4.2
 - Supported operators:
     - Arithmetic: [+, -, *, /]
 ```go
@@ -42,7 +47,9 @@ Expr is a string expression parser in go. Not a fancy eval, just a simple and li
 ```
 
 #### Integer
-- Int parses the given expr string into int as a result. e.g: "2 + 2" -> 4, "2.2 + 2" -> 4.
+- Int parses the given expr string into int as a result. e.g:
+    - "2 + 2" -> 4
+    - "2.2 + 2" -> 4
 - Supported operators:
     - Arithmetic: [+, -, *, /, %]
     - Bitwise: [&, |, ^, &^, <<, >>]
