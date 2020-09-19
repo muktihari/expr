@@ -27,7 +27,7 @@ type visitor struct {
 }
 
 func (v *visitor) Visit(node ast.Node) ast.Visitor {
-	if node == nil {
+	if node == nil || v.err != nil {
 		return nil
 	}
 
