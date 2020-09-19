@@ -9,7 +9,13 @@ import (
 	"github.com/muktihari/expr/integer"
 )
 
-// Int parses the given expr string into int as result. e.g: 2 + 2 -> 4, 2.2 + 2 -> 4
+// Int parses the given expr string into int as a result. e.g: "2 + 2" -> 4, "2.2 + 2" -> 4.
+//
+// Supported operators:
+//
+// Arithmetic: [+, -, *, /, %]
+//
+// Bitwise: [&, |, ^, &^, <<, >>]
 func Int(str string) (int, error) {
 	expr, err := parser.ParseExpr(str)
 	if err != nil {
@@ -18,10 +24,14 @@ func Int(str string) (int, error) {
 
 	visitor := integer.NewVisitor()
 	ast.Walk(visitor, expr)
-	return visitor.Result(), nil
+	return visitor.Result()
 }
 
-// Float64 parses the given expr string into float64 as result . e.g: 2 + 2 -> 4, 2.2 + 2 -> 4.2
+// Float64 parses the given expr string into float64 as a result . e.g: "2 + 2" -> 4, "2.2 + 2" -> 4.2
+//
+// Supported operators:
+//
+// Arithmetic: [+, -, *, /]
 func Float64(str string) (float64, error) {
 	expr, err := parser.ParseExpr(str)
 	if err != nil {
@@ -30,10 +40,18 @@ func Float64(str string) (float64, error) {
 
 	visitor := float.NewVisitor()
 	ast.Walk(visitor, expr)
-	return visitor.Result(), nil
+	return visitor.Result()
 }
 
-// Bool parses the given expr string into boolean as result. e.g: 1 < 2 -> true, 1 > 2 -> false, true || false -> true
+// Bool parses the given expr string into boolean as a result. e.g: "1 < 2" -> true, "1 > 2" -> false, "true || false" -> true.
+//
+// However, arithmetic is not supported at the moment, it WON'T DO "1 + 2 > 1" -> true [X]
+//
+// Supported operators:
+//
+// Comparison: [==, !=, <, <=, >, >=]
+//
+// Logical: [&&, ||]
 func Bool(str string) (bool, error) {
 	expr, err := parser.ParseExpr(str)
 	if err != nil {
@@ -42,5 +60,5 @@ func Bool(str string) (bool, error) {
 
 	visitor := boolean.NewVisitor()
 	ast.Walk(visitor, expr)
-	return visitor.Result(), nil
+	return visitor.Result()
 }

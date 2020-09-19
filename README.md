@@ -1,12 +1,12 @@
-![expr](./expr.png)
+![expr](./icon.svg)
 
 [![expr](https://img.shields.io/badge/go-reference-blue.svg?style=flat)](https://pkg.go.dev/github.com/muktihari/expr)
 [![Go Report Card](https://goreportcard.com/badge/github.com/muktihari/expr?)](https://goreportcard.com/report/github.com/muktihari/expr)
 [![Travis Widget](https://travis-ci.org/muktihari/expr.svg?branch=master)](https://travis-ci.org/github/muktihari/expr)
 
-Expr is a string expression parser in go. Not a fancy eval, just a simple and lightweight expr parser.
+Expr is a string expression parser in go. Not a fancy eval, just a simple and lightweight expr parser. Bool, Float64 and Int (with bitwise opperators) are available.
 
-```
+```js
 "1 + 1" -> 2
 "1 < 2" -> true
 "true && false" -> false
@@ -14,16 +14,24 @@ Expr is a string expression parser in go. Not a fancy eval, just a simple and li
 
 ## Usage
 #### Boolean
+- Bool parses the given expr string into boolean as a result. e.g: "1 < 2" -> true, "1 > 2" -> false, "true || false" -> true.
+- However, arithmetic is not supported at the moment, it WON'T DO "1 + 2 > 1" -> true [X]
+- Supported operators:
+    - Comparison: [==, !=, <, <=, >, >=]
+    - Logical: [&&, ||]
 ```go
     str := "((1 < 2 && 3 > 4) || 1 == 1) && 4 < 5"
     v, err := expr.Bool(str)
     if err != nil {
-        panic(err) // err is error invalid expression
+        panic(err)
     }
     fmt.Printf("%t", v) // true
 ```
 
 #### Float64
+- Float64 parses the given expr string into float64 as a result . e.g: "2 + 2" -> 4, "2.2 + 2" -> 4.2
+- Supported operators:
+    - Arithmetic: [+, -, *, /]
 ```go
     str := "((2 * 2) * (8 + 2) * 2) + 2.56789"
     v, err := expr.Float64(str)
@@ -34,6 +42,10 @@ Expr is a string expression parser in go. Not a fancy eval, just a simple and li
 ```
 
 #### Integer
+- Int parses the given expr string into int as a result. e.g: "2 + 2" -> 4, "2.2 + 2" -> 4.
+- Supported operators:
+    - Arithmetic: [+, -, *, /, %]
+    - Bitwise: [&, |, ^, &^, <<, >>]
 ```go
     str := "((2 * 2) * (8 + 2) * 2) + 2.56789"
     v, err := expr.Int(str)
@@ -43,7 +55,6 @@ Expr is a string expression parser in go. Not a fancy eval, just a simple and li
     fmt.Printf("%d", v) // 82
 ```
 
-*simple, isn't it?*
 
 ## License
 Expr is released under [Apache Licence 2.0](https://www.apache.org/licenses/LICENSE-2.0)
