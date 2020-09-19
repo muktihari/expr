@@ -4,17 +4,22 @@ import (
 	"testing"
 
 	"github.com/muktihari/expr"
+	"github.com/muktihari/expr/boolean"
+	"github.com/muktihari/expr/float"
+	"github.com/muktihari/expr/integer"
 )
 
 func TestInt(t *testing.T) {
 	tt := []struct {
-		In string
-		Eq int
+		In  string
+		Eq  int
+		Err error
 	}{
 		{In: "2 + 2", Eq: 4},
 		{In: "4 - 2", Eq: 2},
 		{In: "4 * 2", Eq: 8},
 		{In: "4 / 2", Eq: 2},
+		{In: "4 || 2", Eq: 0, Err: integer.ErrUnsupportedOperator},
 		{In: "(2 + 2) * 10", Eq: 40},
 		{In: "(2 + 2) / 10", Eq: 0},
 		{In: "(2 * 2) * (8 + 2)", Eq: 40},
@@ -35,8 +40,8 @@ func TestInt(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.In, func(t *testing.T) {
 			v, err := expr.Int(tc.In)
-			if err != nil {
-				t.Fatalf("expected nil, got: %v", err)
+			if err != tc.Err {
+				t.Fatalf("expected %v, got: %v", tc.Err, err)
 			}
 			if v != tc.Eq {
 				t.Fatalf("expected %d, got: %d", tc.Eq, v)
@@ -47,10 +52,12 @@ func TestInt(t *testing.T) {
 
 func TestFloat64(t *testing.T) {
 	tt := []struct {
-		In string
-		Eq float64
+		In  string
+		Eq  float64
+		Err error
 	}{
-		{In: "2 + 2", Eq: 4},
+		{In: "2", Eq: 2},
+		{In: "2 && 2", Eq: 0, Err: float.ErrUnsupportedOperator},
 		{In: "4 - 2", Eq: 2},
 		{In: "4 * 2", Eq: 8},
 		{In: "4 / 2", Eq: 2},
@@ -74,8 +81,8 @@ func TestFloat64(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.In, func(t *testing.T) {
 			v, err := expr.Float64(tc.In)
-			if err != nil {
-				t.Fatalf("expected nil, got: %v", err)
+			if err != tc.Err {
+				t.Fatalf("expected %v, got: %v", tc.Err, err)
 			}
 
 			if v != tc.Eq {
@@ -87,11 +94,13 @@ func TestFloat64(t *testing.T) {
 
 func TestBool(t *testing.T) {
 	tt := []struct {
-		In string
-		Eq bool
+		In  string
+		Eq  bool
+		Err error
 	}{
 		{In: "1 < 2", Eq: true},
 		{In: "2 < 1", Eq: false},
+		{In: "2 < 1 && (1 + 1) > 1", Eq: false, Err: boolean.ErrUnsupportedOperator},
 		{In: "(1 < 2 && 3 > 4) || 1 == 1", Eq: true},
 		{In: "((1 < 2 && 3 > 4) || 1 == 1) && 4 > 5", Eq: false},
 		{In: "false && false", Eq: false},
@@ -110,8 +119,8 @@ func TestBool(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.In, func(t *testing.T) {
 			v, err := expr.Bool(tc.In)
-			if err != nil {
-				t.Fatalf("expected nil, got: %v", err)
+			if err != tc.Err {
+				t.Fatalf("expected %v, got: %v", tc.Err, err)
 			}
 			if v != tc.Eq {
 				t.Fatalf("expected %v, got: %v", tc.Eq, v)
