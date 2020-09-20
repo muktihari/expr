@@ -115,7 +115,7 @@ func tryArithmetic(xVisitor, yVisitor *visitor, op token.Token) (string, token.T
 		}
 		x, _ := strconv.Atoi(xVisitor.res)
 		y, _ := strconv.Atoi(yVisitor.res)
-		return fmt.Sprintf("%d", x/y), token.INT, nil
+		return fmt.Sprintf("%d", x%y), token.INT, nil
 	default:
 		return "", 0, ErrUnsupportedOperator
 	}
