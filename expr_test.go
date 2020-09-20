@@ -120,6 +120,8 @@ func TestBool(t *testing.T) {
 		{In: "-(-1) > -1", Eq: true},
 		{In: "-(-1.5) > +1.3", Eq: true},
 		{In: "-4 * -2 > -1", Eq: true},
+		{In: "10 % 2 > -2", Eq: true},
+		{In: "10 % 2 < 1", Eq: true},
 	}
 
 	for _, tc := range tt {
