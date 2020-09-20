@@ -6,10 +6,10 @@
 
 Expr is a string expression parser in go. Not a fancy eval, just a simple and lightweight expr parser. Bool, Float64 and Int (with bitwise opperators) are available.
 
-```js
+```go
 "1 + 1" -> 2
-"1 < 2" -> true
-"true && false" -> false
+"1 < 2 + 2" -> true
+"true && !false" -> true
 ```
 
 ## Usage
@@ -18,10 +18,15 @@ Expr is a string expression parser in go. Not a fancy eval, just a simple and li
     - "1 < 2" -> true
     - "1 > 2" -> false
     - "true || false" -> true
-- However, arithmetic is not supported at the moment, **it WON'T DO "1 + 2 > 1" -> true [X]***
+    - "true && !false" -> true
+- Arithmetic operation are supported. e.g:
+    - "1 + 2 > 1" -> true
+    - "(1 * 10) > -2" -> true
 - Supported operators:
     - Comparison: [==, !=, <, <=, >, >=]
-    - Logical: [&&, ||]
+    - Logical: [&&, ||, !]
+    - Arithmetic: [+, -, *, /, %] *(the % operator is only work for interger operation)*
+
 ```go
     str := "((1 < 2 && 3 > 4) || 1 == 1) && 4 < 5"
     v, err := expr.Bool(str)
@@ -37,6 +42,7 @@ Expr is a string expression parser in go. Not a fancy eval, just a simple and li
     - "2.2 + 2" -> 4.2
 - Supported operators:
     - Arithmetic: [+, -, *, /]
+
 ```go
     str := "((2 * 2) * (8 + 2) * 2) + 2.56789"
     v, err := expr.Float64(str)
@@ -52,7 +58,11 @@ Expr is a string expression parser in go. Not a fancy eval, just a simple and li
     - "2.2 + 2" -> 4
 - Supported operators:
     - Arithmetic: [+, -, *, /, %]
-    - Bitwise: [&, |, ^, &^, <<, >>]
+    - Bitwise: [&, |, ^, &^, <<, >>] (signed integer)
+- Notes: 
+    - << and >> operators are not permitted to be used in signed integer for go version less than 1.13.x.
+    - Reference: [https://golang.org/doc/go1.13#language](https://golang.org/doc/go1.13#language)
+
 ```go
     str := "((2 * 2) * (8 + 2) * 2) + 2.56789"
     v, err := expr.Int(str)

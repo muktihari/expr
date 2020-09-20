@@ -62,7 +62,7 @@ func BenchmarkFloat64(b *testing.B) {
 }
 
 func BenchmarkBoolean(b *testing.B) {
-	booleanExpr := "(\"expr\" == \"expr\" && \"Expr\" == \"expr\") || true == true && 1 < 2 && (1 > 2 || 1 == 1)"
+	booleanExpr := "(\"expr\" == \"expr\" && \"Expr\" == \"expr\") || !false && 1 < 2 && (1 > 2 || -1 > -2)"
 	multiply := func(s string, n int) string {
 		for i := 1; i < n; i++ {
 			s += " && (" + s + ")"
