@@ -86,6 +86,10 @@ func ExampleBool() {
 		"1 + 2 > 1 * 2",
 		"1 + 2 < (2 + 2) * 10",
 		"1 < 1 <",
+		"-1 > -10",
+		"true",
+		"!false",
+		"!false || false",
 	}
 
 	for _, value := range values {
@@ -100,7 +104,11 @@ func ExampleBool() {
 	// true <nil>
 	// true <nil>
 	// false <nil>
-	// false unsupported operator
-	// false unsupported operator
+	// true <nil>
+	// true <nil>
 	// false 1:8: expected operand, found 'EOF'
+	// true <nil>
+	// true <nil>
+	// true <nil>
+	// true <nil>
 }

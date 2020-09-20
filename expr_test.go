@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/muktihari/expr"
-	"github.com/muktihari/expr/boolean"
 	"github.com/muktihari/expr/float"
 	"github.com/muktihari/expr/integer"
 )
@@ -100,7 +99,7 @@ func TestBool(t *testing.T) {
 	}{
 		{In: "1 < 2", Eq: true},
 		{In: "2 < 1", Eq: false},
-		{In: "2 < 1 && (1 + 1) > 1", Eq: false, Err: boolean.ErrUnsupportedOperator},
+		{In: "2 < 1 && (1 + 1) > 1", Eq: false},
 		{In: "(1 < 2 && 3 > 4) || 1 == 1", Eq: true},
 		{In: "((1 < 2 && 3 > 4) || 1 == 1) && 4 > 5", Eq: false},
 		{In: "false && false", Eq: false},
@@ -114,6 +113,13 @@ func TestBool(t *testing.T) {
 		{In: "(\"expr\" == \"expr\" && \"Expr\" == \"expr\") || 1 == 1 ", Eq: true},
 		{In: "(\"expr\" == \"expr\" && \"Expr\" == \"expr\") || true == true ", Eq: true},
 		{In: "(\"expr\" == \"expr\" && \"Expr\" == \"expr\") || true == false ", Eq: false},
+		{In: "true", Eq: true},
+		{In: "!false", Eq: true},
+		{In: "!false || false", Eq: true},
+		{In: "(-10 < -2) && -1 > -2", Eq: true},
+		{In: "-(-1) > -1", Eq: true},
+		{In: "-(-1.5) > +1.3", Eq: true},
+		{In: "-4 * -2 > -1", Eq: true},
 	}
 
 	for _, tc := range tt {
