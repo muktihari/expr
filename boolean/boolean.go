@@ -32,92 +32,128 @@ type visitor struct {
 	err  error
 }
 
-func parseUnaryExpr(unaryExpr *ast.UnaryExpr) (string, token.Token, error) {
+func (v *visitor) visitUnary(unaryExpr *ast.UnaryExpr) ast.Visitor {
 	switch unaryExpr.Op {
-	case token.NOT:
-		v := &visitor{}
-		ast.Walk(v, unaryExpr.X)
-		if v.err != nil {
-			return "", v.kind, v.err
+	case token.NOT, token.ADD, token.SUB:
+		xVisitor := &visitor{}
+		ast.Walk(xVisitor, unaryExpr.X)
+		if xVisitor.err != nil {
+			v.err = xVisitor.err
+			return nil
 		}
-		res, _ := strconv.ParseBool(v.res)
-		return strconv.FormatBool(!res), 0, nil
-	case token.ADD:
-		v := &visitor{}
-		ast.Walk(v, unaryExpr.X)
-		if v.err != nil {
-			return "", v.kind, v.err
-		}
-		return v.res, v.kind, nil
-	case token.SUB:
-		v := &visitor{}
-		ast.Walk(v, unaryExpr.X)
-		if v.err != nil {
-			return "", v.kind, v.err
-		}
-
-		if strings.HasPrefix(v.res, "-") {
-			if v.kind == token.FLOAT {
-				value, _ := strconv.ParseFloat(v.res, 64)
-				return fmt.Sprintf("%f", value*-1), v.kind, nil
+		switch unaryExpr.Op {
+		case token.NOT:
+			res, _ := strconv.ParseBool(xVisitor.res)
+			v.res = strconv.FormatBool(!res)
+		case token.ADD:
+			v.res, v.kind = xVisitor.res, xVisitor.kind
+		case token.SUB:
+			if strings.HasPrefix(xVisitor.res, "-") {
+				v.res, v.kind = strings.TrimPrefix(xVisitor.res, "-"), xVisitor.kind
+				return nil
 			}
-			value, _ := strconv.Atoi(v.res)
-			return fmt.Sprintf("%d", value*-1), v.kind, nil
+			v.res, v.kind = "-"+xVisitor.res, xVisitor.kind
 		}
-
-		return "-" + v.res, v.kind, nil
 	default:
-		return "", 0, ErrUnsupportedOperator
+		v.err = ErrUnsupportedOperator
+	}
+	return nil
+}
+
+func (v *visitor) arithmetic(xVisitor, yVisitor *visitor, op token.Token) {
+	var x, y interface{}
+	if xVisitor.kind == token.FLOAT || yVisitor.kind == token.FLOAT {
+		x, _ = strconv.ParseFloat(xVisitor.res, 64)
+		y, _ = strconv.ParseFloat(yVisitor.res, 64)
+	} else {
+		x, _ = strconv.Atoi(xVisitor.res)
+		y, _ = strconv.Atoi(yVisitor.res)
+	}
+
+	_, ok := x.(float64)
+	switch op {
+	case token.ADD:
+		if ok {
+			v.res, v.kind = fmt.Sprintf("%f", x.(float64)+y.(float64)), token.FLOAT
+			return
+		}
+		v.res, v.kind = fmt.Sprintf("%d", x.(int)+y.(int)), token.INT
+	case token.SUB:
+		if ok {
+			v.res, v.kind = fmt.Sprintf("%f", x.(float64)-y.(float64)), token.FLOAT
+			return
+		}
+		v.res, v.kind = fmt.Sprintf("%d", x.(int)-y.(int)), token.INT
+	case token.MUL:
+		if ok {
+			v.res, v.kind = fmt.Sprintf("%f", x.(float64)*y.(float64)), token.FLOAT
+			return
+		}
+		v.res, v.kind = fmt.Sprintf("%d", x.(int)*y.(int)), token.INT
+	case token.QUO:
+		if ok {
+			v.res, v.kind = fmt.Sprintf("%f", x.(float64)/y.(float64)), token.FLOAT
+			return
+		}
+		v.res, v.kind = fmt.Sprintf("%d", x.(int)/y.(int)), token.INT
+	case token.REM:
+		if ok {
+			v.err = fmt.Errorf("operator %s is not supported on untyped float: %w", "%", ErrInvalidOperationOnFloat)
+		}
+		v.res, v.kind = fmt.Sprintf("%d", x.(int)%y.(int)), token.INT
 	}
 }
 
-func tryArithmetic(xVisitor, yVisitor *visitor, op token.Token) (string, token.Token, error) {
+func (v *visitor) comparison(xVisitor, yVisitor *visitor, op token.Token) {
 	switch op {
-	case token.ADD:
-		if xVisitor.kind == token.FLOAT || yVisitor.kind == token.FLOAT {
-			x, _ := strconv.ParseFloat(xVisitor.res, 64)
-			y, _ := strconv.ParseFloat(yVisitor.res, 64)
-			return fmt.Sprintf("%f", x+y), token.FLOAT, nil
+	case token.EQL:
+		v.res = strconv.FormatBool(xVisitor.res == yVisitor.res)
+		return
+	case token.NEQ:
+		v.res = strconv.FormatBool(xVisitor.res != yVisitor.res)
+		return
+	}
+
+	if xVisitor.kind == token.STRING || yVisitor.kind == token.STRING {
+		v.res = strconv.FormatBool(xVisitor.res > yVisitor.res)
+		return
+	}
+
+	var x, y interface{}
+	if xVisitor.kind == token.FLOAT || yVisitor.kind == token.FLOAT {
+		x, _ = strconv.ParseFloat(xVisitor.res, 64)
+		y, _ = strconv.ParseFloat(yVisitor.res, 64)
+	} else {
+		x, _ = strconv.Atoi(xVisitor.res)
+		y, _ = strconv.Atoi(yVisitor.res)
+	}
+
+	_, ok := x.(float64)
+	switch op {
+	case token.GTR:
+		if ok {
+			v.res = strconv.FormatBool(x.(float64) > y.(float64))
+			return
 		}
-		x, _ := strconv.Atoi(xVisitor.res)
-		y, _ := strconv.Atoi(yVisitor.res)
-		return fmt.Sprintf("%d", x+y), token.INT, nil
-	case token.SUB:
-		if xVisitor.kind == token.FLOAT || yVisitor.kind == token.FLOAT {
-			x, _ := strconv.ParseFloat(xVisitor.res, 64)
-			y, _ := strconv.ParseFloat(yVisitor.res, 64)
-			return fmt.Sprintf("%f", x-y), token.FLOAT, nil
+		v.res = strconv.FormatBool(x.(int) > y.(int))
+	case token.GEQ:
+		if ok {
+			v.res = strconv.FormatBool(x.(float64) >= y.(float64))
+			return
 		}
-		x, _ := strconv.Atoi(xVisitor.res)
-		y, _ := strconv.Atoi(yVisitor.res)
-		return fmt.Sprintf("%d", x-y), token.INT, nil
-	case token.MUL:
-		if xVisitor.kind == token.FLOAT || yVisitor.kind == token.FLOAT {
-			x, _ := strconv.ParseFloat(xVisitor.res, 64)
-			y, _ := strconv.ParseFloat(yVisitor.res, 64)
-			return fmt.Sprintf("%f", x*y), token.FLOAT, nil
+		v.res = strconv.FormatBool(x.(int) >= y.(int))
+	case token.LSS:
+		if ok {
+			v.res = strconv.FormatBool(x.(float64) < y.(float64))
+			return
 		}
-		x, _ := strconv.Atoi(xVisitor.res)
-		y, _ := strconv.Atoi(yVisitor.res)
-		return fmt.Sprintf("%d", x*y), token.INT, nil
-	case token.QUO:
-		if xVisitor.kind == token.FLOAT || yVisitor.kind == token.FLOAT {
-			x, _ := strconv.ParseFloat(xVisitor.res, 64)
-			y, _ := strconv.ParseFloat(yVisitor.res, 64)
-			return fmt.Sprintf("%f", x/y), token.FLOAT, nil
+		v.res = strconv.FormatBool(x.(int) < y.(int))
+	case token.LEQ:
+		if ok {
+			v.res = strconv.FormatBool(x.(float64) <= y.(float64))
+			return
 		}
-		x, _ := strconv.Atoi(xVisitor.res)
-		y, _ := strconv.Atoi(yVisitor.res)
-		return fmt.Sprintf("%d", x/y), token.INT, nil
-	case token.REM:
-		if xVisitor.kind == token.FLOAT || yVisitor.kind == token.FLOAT {
-			return "", 0, fmt.Errorf("operator %s is not supported on untyped float: %w", "%", ErrInvalidOperationOnFloat)
-		}
-		x, _ := strconv.Atoi(xVisitor.res)
-		y, _ := strconv.Atoi(yVisitor.res)
-		return fmt.Sprintf("%d", x%y), token.INT, nil
-	default:
-		return "", 0, ErrUnsupportedOperator
+		v.res = strconv.FormatBool(x.(int) <= y.(int))
 	}
 }
 
@@ -130,8 +166,7 @@ func (v *visitor) Visit(node ast.Node) ast.Visitor {
 	case *ast.ParenExpr:
 		return v.Visit(d.X)
 	case *ast.UnaryExpr:
-		v.res, v.kind, v.err = parseUnaryExpr(d)
-		return nil
+		return v.visitUnary(d)
 	case *ast.BinaryExpr:
 		xVisitor := &visitor{}
 		ast.Walk(xVisitor, d.X)
@@ -139,107 +174,34 @@ func (v *visitor) Visit(node ast.Node) ast.Visitor {
 			v.err = xVisitor.err
 			return nil
 		}
-		x := xVisitor.res
-
 		yVisitor := &visitor{}
 		ast.Walk(yVisitor, d.Y)
 		if yVisitor.err != nil {
 			v.err = yVisitor.err
 			return nil
 		}
-		y := yVisitor.res
-
 		switch d.Op {
-		case token.EQL:
-			v.res = strconv.FormatBool(x == y)
-		case token.NEQ:
-			v.res = strconv.FormatBool(x != y)
-		case token.GTR:
-			if xVisitor.kind != token.STRING && yVisitor.kind != token.STRING {
-				if xVisitor.kind == token.FLOAT || yVisitor.kind == token.FLOAT {
-					x, _ := strconv.ParseFloat(xVisitor.res, 64)
-					y, _ := strconv.ParseFloat(yVisitor.res, 64)
-
-					v.res = strconv.FormatBool(x > y)
-					return nil
-				}
-				x, _ := strconv.Atoi(xVisitor.res)
-				y, _ := strconv.Atoi(yVisitor.res)
-				v.res = strconv.FormatBool(x > y)
+		case token.EQL, token.NEQ, token.GTR, token.GEQ, token.LSS, token.LEQ:
+			v.comparison(xVisitor, yVisitor, d.Op)
+		case token.ADD, token.SUB, token.MUL, token.QUO, token.REM:
+			v.arithmetic(xVisitor, yVisitor, d.Op)
+		case token.LAND, token.LOR:
+			var x, y bool
+			x, v.err = strconv.ParseBool(xVisitor.res)
+			if v.err != nil {
 				return nil
 			}
-			v.res = strconv.FormatBool(x > y)
-		case token.GEQ:
-			if xVisitor.kind != token.STRING && yVisitor.kind != token.STRING {
-				if xVisitor.kind == token.FLOAT || yVisitor.kind == token.FLOAT {
-					x, _ := strconv.ParseFloat(xVisitor.res, 64)
-					y, _ := strconv.ParseFloat(yVisitor.res, 64)
-
-					v.res = strconv.FormatBool(x >= y)
-					return nil
-				}
-				x, _ := strconv.Atoi(xVisitor.res)
-				y, _ := strconv.Atoi(yVisitor.res)
-				v.res = strconv.FormatBool(x >= y)
+			y, v.err = strconv.ParseBool(yVisitor.res)
+			if v.err != nil {
 				return nil
 			}
-			v.res = strconv.FormatBool(x >= y)
-		case token.LSS:
-			if xVisitor.kind != token.STRING && yVisitor.kind != token.STRING {
-				if xVisitor.kind == token.FLOAT || yVisitor.kind == token.FLOAT {
-					x, _ := strconv.ParseFloat(xVisitor.res, 64)
-					y, _ := strconv.ParseFloat(yVisitor.res, 64)
-
-					v.res = strconv.FormatBool(x < y)
-					return nil
-				}
-				x, _ := strconv.Atoi(xVisitor.res)
-				y, _ := strconv.Atoi(yVisitor.res)
-				v.res = strconv.FormatBool(x < y)
+			if d.Op == token.LAND {
+				v.res = strconv.FormatBool(x && y)
 				return nil
 			}
-			v.res = strconv.FormatBool(x < y)
-		case token.LEQ:
-			if xVisitor.kind != token.STRING && yVisitor.kind != token.STRING {
-				if xVisitor.kind == token.FLOAT || yVisitor.kind == token.FLOAT {
-					x, _ := strconv.ParseFloat(xVisitor.res, 64)
-					y, _ := strconv.ParseFloat(yVisitor.res, 64)
-
-					v.res = strconv.FormatBool(x <= y)
-					return nil
-				}
-				x, _ := strconv.Atoi(xVisitor.res)
-				y, _ := strconv.Atoi(yVisitor.res)
-				v.res = strconv.FormatBool(x <= y)
-				return nil
-			}
-			v.res = strconv.FormatBool(x <= y)
-		case token.LAND:
-			xbool, err := strconv.ParseBool(x)
-			if err != nil {
-				v.err = err
-				return nil
-			}
-			ybool, err := strconv.ParseBool(y)
-			if err != nil {
-				v.err = err
-				return nil
-			}
-			v.res = strconv.FormatBool(xbool && ybool)
-		case token.LOR:
-			xbool, err := strconv.ParseBool(x)
-			if err != nil {
-				v.err = err
-				return nil
-			}
-			ybool, err := strconv.ParseBool(y)
-			if err != nil {
-				v.err = err
-				return nil
-			}
-			v.res = strconv.FormatBool(xbool || ybool)
+			v.res = strconv.FormatBool(x || y)
 		default:
-			v.res, v.kind, v.err = tryArithmetic(xVisitor, yVisitor, d.Op)
+			v.err = ErrUnsupportedOperator
 		}
 		return nil
 	case *ast.BasicLit:
@@ -259,7 +221,5 @@ func (v *visitor) Result() (bool, error) {
 	if v.err != nil {
 		return false, v.err
 	}
-	var res bool
-	res, v.err = strconv.ParseBool(v.res)
-	return res, v.err
+	return strconv.ParseBool(v.res)
 }
