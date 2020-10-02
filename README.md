@@ -40,6 +40,7 @@ Expr is a string expression parser in go. Not a fancy eval, just a simple and li
 - Float64 parses the given expr string into float64 as a result. e.g:
     - "2 + 2" -> 4
     - "2.2 + 2" -> 4.2
+    - "10 * -5 + (-5.5)" -> -55.5
 - Supported operators:
     - Arithmetic: [+, -, *, /]
 
@@ -56,12 +57,14 @@ Expr is a string expression parser in go. Not a fancy eval, just a simple and li
 - Int parses the given expr string into int as a result. e.g:
     - "2 + 2" -> 4
     - "2.2 + 2" -> 4
+    - "10 + ((-5 * -10) / -10) - 2" -> 3
 - Supported operators:
     - Arithmetic: [+, -, *, /, %]
     - Bitwise: [&, |, ^, &^, <<, >>] (signed integer)
 - Notes: 
     - << and >> operators are not permitted to be used in signed integer for go version less than 1.13.x.
     - Reference: [https://golang.org/doc/go1.13#language](https://golang.org/doc/go1.13#language)
+    - Even if bitwise is supported, the priority operation is not granted, any bit operation is advised to be put in parentheses.
 
 ```go
     str := "((2 * 2) * (8 + 2) * 2) + 2.56789"

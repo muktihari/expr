@@ -10,6 +10,9 @@ import (
 // ErrUnsupportedOperator is error unsupported operator
 var ErrUnsupportedOperator = errors.New("unsupported operator")
 
+// ErrIntegerDividedByZero occurs when x/y and y equals to 0, Go does not allow integer to be devided by zero
+var ErrIntegerDividedByZero = errors.New("integer divide by zero")
+
 // Visitor is integer visitor interface
 type Visitor interface {
 	Visit(node ast.Node) ast.Visitor
@@ -25,6 +28,27 @@ type visitor struct {
 	res  int
 	base int // base10 except stated otherwise
 	err  error
+}
+
+func (v *visitor) visitUnary(unaryExpr *ast.UnaryExpr) ast.Visitor {
+	switch unaryExpr.Op {
+	case token.ADD, token.SUB:
+		xVisitor := &visitor{}
+		ast.Walk(xVisitor, unaryExpr.X)
+		if xVisitor.err != nil {
+			v.err = xVisitor.err
+			return nil
+		}
+		switch unaryExpr.Op {
+		case token.ADD:
+			v.res = xVisitor.res
+		case token.SUB:
+			v.res = xVisitor.res * -1
+		}
+	default:
+		v.err = ErrUnsupportedOperator
+	}
+	return nil
 }
 
 func (v *visitor) arithmetic(binaryExpr *ast.BinaryExpr) {
@@ -49,6 +73,10 @@ func (v *visitor) arithmetic(binaryExpr *ast.BinaryExpr) {
 	case token.MUL:
 		v.res = x.res * y.res
 	case token.QUO:
+		if y.res == 0 {
+			v.err = ErrIntegerDividedByZero
+			return
+		}
 		v.res = x.res / y.res
 	case token.REM:
 		v.res = x.res % y.res
@@ -106,6 +134,8 @@ func (v *visitor) Visit(node ast.Node) ast.Visitor {
 	switch d := node.(type) {
 	case *ast.ParenExpr:
 		return v.Visit(d.X)
+	case *ast.UnaryExpr:
+		return v.visitUnary(d)
 	case *ast.BinaryExpr:
 		return v.visitBinary(d)
 	case *ast.BasicLit:

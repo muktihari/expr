@@ -26,6 +26,27 @@ type visitor struct {
 	err error
 }
 
+func (v *visitor) visitUnary(unaryExpr *ast.UnaryExpr) ast.Visitor {
+	switch unaryExpr.Op {
+	case token.ADD, token.SUB:
+		xVisitor := &visitor{}
+		ast.Walk(xVisitor, unaryExpr.X)
+		if xVisitor.err != nil {
+			v.err = xVisitor.err
+			return nil
+		}
+		switch unaryExpr.Op {
+		case token.ADD:
+			v.res = xVisitor.res
+		case token.SUB:
+			v.res = xVisitor.res * -1
+		}
+	default:
+		v.err = ErrUnsupportedOperator
+	}
+	return nil
+}
+
 func (v *visitor) visitBinary(binaryExpr *ast.BinaryExpr) ast.Visitor {
 	switch binaryExpr.Op {
 	case token.ADD, token.SUB, token.MUL, token.QUO:
@@ -70,6 +91,8 @@ func (v *visitor) Visit(node ast.Node) ast.Visitor {
 	switch d := node.(type) {
 	case *ast.ParenExpr:
 		return v.Visit(d.X)
+	case *ast.UnaryExpr:
+		return v.visitUnary(d)
 	case *ast.BinaryExpr:
 		return v.visitBinary(d)
 	case *ast.BasicLit:
