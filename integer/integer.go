@@ -27,6 +27,77 @@ type visitor struct {
 	err  error
 }
 
+func (v *visitor) arithmethic(binaryExpr *ast.BinaryExpr) {
+	x := &visitor{}
+	ast.Walk(x, binaryExpr.X)
+	if x.err != nil {
+		v.err = x.err
+		return
+	}
+	y := &visitor{}
+	ast.Walk(y, binaryExpr.Y)
+	if y.err != nil {
+		v.err = y.err
+		return
+	}
+
+	switch binaryExpr.Op {
+	case token.ADD:
+		v.res = x.res + y.res
+	case token.SUB:
+		v.res = x.res - y.res
+	case token.MUL:
+		v.res = x.res * y.res
+	case token.QUO:
+		v.res = x.res / y.res
+	case token.REM:
+		v.res = x.res % y.res
+	}
+}
+
+func (v *visitor) bitwise(binaryExpr *ast.BinaryExpr) {
+	x := &visitor{base: 2}
+	ast.Walk(x, binaryExpr.X)
+	if x.err != nil {
+		v.err = x.err
+		return
+	}
+
+	y := &visitor{base: 2}
+	ast.Walk(y, binaryExpr.Y)
+	if y.err != nil {
+		v.err = y.err
+		return
+	}
+
+	switch binaryExpr.Op {
+	case token.AND:
+		v.res = x.res & y.res
+	case token.OR:
+		v.res = x.res | y.res
+	case token.XOR:
+		v.res = x.res ^ y.res
+	case token.AND_NOT:
+		v.res = x.res &^ y.res
+	case token.SHL:
+		v.res = x.res << y.res
+	case token.SHR:
+		v.res = x.res >> y.res
+	}
+}
+
+func (v *visitor) visitBinary(binaryExpr *ast.BinaryExpr) ast.Visitor {
+	switch binaryExpr.Op {
+	case token.ADD, token.SUB, token.MUL, token.QUO, token.REM:
+		v.arithmethic(binaryExpr)
+	case token.AND, token.OR, token.XOR, token.AND_NOT, token.SHL, token.SHR:
+		v.bitwise(binaryExpr)
+	default:
+		v.err = ErrUnsupportedOperator
+	}
+	return nil
+}
+
 func (v *visitor) Visit(node ast.Node) ast.Visitor {
 	if node == nil || v.err != nil {
 		return nil
@@ -36,72 +107,7 @@ func (v *visitor) Visit(node ast.Node) ast.Visitor {
 	case *ast.ParenExpr:
 		return v.Visit(d.X)
 	case *ast.BinaryExpr:
-		switch d.Op {
-		case token.ADD, token.SUB, token.MUL, token.QUO, token.REM: // arithmatic operators
-			xVisitor := &visitor{}
-			ast.Walk(xVisitor, d.X)
-			if xVisitor.err != nil {
-				v.err = xVisitor.err
-				return nil
-			}
-			x := xVisitor.res
-
-			yVisitor := &visitor{}
-			ast.Walk(yVisitor, d.Y)
-			if yVisitor.err != nil {
-				v.err = yVisitor.err
-				return nil
-			}
-			y := yVisitor.res
-
-			switch d.Op {
-			case token.ADD:
-				v.res = x + y
-			case token.SUB:
-				v.res = x - y
-			case token.MUL:
-				v.res = x * y
-			case token.QUO:
-				v.res = x / y
-			case token.REM:
-				v.res = x % y
-			}
-			return nil
-		case token.AND, token.OR, token.XOR, token.AND_NOT, token.SHL, token.SHR: // bitwise operators
-			xVisitor := &visitor{base: 2}
-			ast.Walk(xVisitor, d.X)
-			if xVisitor.err != nil {
-				v.err = xVisitor.err
-				return nil
-			}
-			x := xVisitor.res
-
-			yVisitor := &visitor{base: 2}
-			ast.Walk(yVisitor, d.Y)
-			if yVisitor.err != nil {
-				v.err = yVisitor.err
-				return nil
-			}
-			y := yVisitor.res
-			switch d.Op {
-			case token.AND:
-				v.res = x & y
-			case token.OR:
-				v.res = x | y
-			case token.XOR:
-				v.res = x ^ y
-			case token.AND_NOT:
-				v.res = x &^ y
-			case token.SHL:
-				v.res = x << y
-			case token.SHR:
-				v.res = x >> y
-			}
-			return nil
-		default:
-			v.err = ErrUnsupportedOperator
-			return nil
-		}
+		return v.visitBinary(d)
 	case *ast.BasicLit:
 		switch d.Kind {
 		case token.INT:
