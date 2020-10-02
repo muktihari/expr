@@ -27,7 +27,7 @@ type visitor struct {
 	err  error
 }
 
-func (v *visitor) arithmethic(binaryExpr *ast.BinaryExpr) {
+func (v *visitor) arithmetic(binaryExpr *ast.BinaryExpr) {
 	x := &visitor{}
 	ast.Walk(x, binaryExpr.X)
 	if x.err != nil {
@@ -89,7 +89,7 @@ func (v *visitor) bitwise(binaryExpr *ast.BinaryExpr) {
 func (v *visitor) visitBinary(binaryExpr *ast.BinaryExpr) ast.Visitor {
 	switch binaryExpr.Op {
 	case token.ADD, token.SUB, token.MUL, token.QUO, token.REM:
-		v.arithmethic(binaryExpr)
+		v.arithmetic(binaryExpr)
 	case token.AND, token.OR, token.XOR, token.AND_NOT, token.SHL, token.SHR:
 		v.bitwise(binaryExpr)
 	default:
