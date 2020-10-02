@@ -1,6 +1,7 @@
 package expr_test
 
 import (
+	"math"
 	"testing"
 
 	"github.com/muktihari/expr"
@@ -40,6 +41,11 @@ func TestInt(t *testing.T) {
 		{In: "10 + (10 * -10)", Eq: -90},
 		{In: "10 + ((-5 * -10) * 10)", Eq: 510},
 		{In: "10 + ((-5 * -10) / -10) - 2", Eq: 3},
+		{In: "10 / 0", Eq: 0, Err: integer.ErrIntegerDividedByZero},
+		{In: "1100 | 0100", Eq: 12}, // = 1111
+		{In: "1100 ^ 0100", Eq: 8},  // = 1011
+		{In: "1100 & 0100", Eq: 4},  // = 0100
+		{In: "1100 &^ 0100", Eq: 8}, // = 1011
 	}
 
 	for _, tc := range tt {
@@ -87,6 +93,8 @@ func TestFloat64(t *testing.T) {
 		{In: "10 + (10 * -10)", Eq: -90},
 		{In: "10 + ((-5 * -10) * 10)", Eq: 510},
 		{In: "10 + ((-5 * -10) / -10) - 2", Eq: 3},
+		{In: "10 / 0", Eq: math.Inf(+1)},
+		{In: "0 / 10", Eq: 0},
 	}
 
 	for _, tc := range tt {

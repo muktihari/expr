@@ -15,6 +15,9 @@ var ErrUnsupportedOperator = errors.New("unsupported operator")
 // ErrInvalidOperationOnFloat is error invalid operation on float
 var ErrInvalidOperationOnFloat = errors.New("invalid operation on float")
 
+// ErrIntegerDividedByZero occurs when x/y and y equals to 0, Go does not allow integer to be devided by zero
+var ErrIntegerDividedByZero = errors.New("integer divide by zero")
+
 // Visitor is boolean visitor interface
 type Visitor interface {
 	Visit(node ast.Node) ast.Visitor
@@ -89,6 +92,10 @@ func (v *visitor) arithmetic(xVisitor, yVisitor *visitor, op token.Token) {
 	case token.MUL:
 		v.res, v.kind = fmt.Sprintf("%d", x*y), token.INT
 	case token.QUO:
+		if y == 0 {
+			v.err = ErrIntegerDividedByZero
+			return
+		}
 		v.res, v.kind = fmt.Sprintf("%d", x/y), token.INT
 	case token.REM:
 		v.res, v.kind = fmt.Sprintf("%d", x%y), token.INT

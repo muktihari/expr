@@ -10,6 +10,9 @@ import (
 // ErrUnsupportedOperator is error unsupported operator
 var ErrUnsupportedOperator = errors.New("unsupported operator")
 
+// ErrIntegerDividedByZero occurs when x/y and y equals to 0, Go does not allow integer to be devided by zero
+var ErrIntegerDividedByZero = errors.New("integer divide by zero")
+
 // Visitor is integer visitor interface
 type Visitor interface {
 	Visit(node ast.Node) ast.Visitor
@@ -70,6 +73,10 @@ func (v *visitor) arithmetic(binaryExpr *ast.BinaryExpr) {
 	case token.MUL:
 		v.res = x.res * y.res
 	case token.QUO:
+		if y.res == 0 {
+			v.err = ErrIntegerDividedByZero
+			return
+		}
 		v.res = x.res / y.res
 	case token.REM:
 		v.res = x.res % y.res
