@@ -11,8 +11,9 @@ import (
 
 // Int parses the given expr string into int as a result.
 // - e.g:
-// 	-"2 + 2" -> 4
-// 	-"2.2 + 2" -> 4
+// 	- "2 + 2" -> 4
+// 	- "2.2 + 2" -> 4
+// 	- "10 + ((-5 * -10) / -10) - 2" -> 3
 //
 // - Supported operators:
 // 	- Arithmetic: [+, -, *, /, %]
@@ -32,6 +33,7 @@ func Int(str string) (int, error) {
 // - e.g:
 // 	- "2 + 2" -> 4
 // 	- "2.2 + 2" -> 4.2
+//	- "10 * -5 + (-5.5)" -> -55.5
 //
 // - Supported operators:
 // 	- Arithmetic: [+, -, *, /]
