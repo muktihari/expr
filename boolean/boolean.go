@@ -61,46 +61,37 @@ func (v *visitor) visitUnary(unaryExpr *ast.UnaryExpr) ast.Visitor {
 }
 
 func (v *visitor) arithmetic(xVisitor, yVisitor *visitor, op token.Token) {
-	var x, y interface{}
 	if xVisitor.kind == token.FLOAT || yVisitor.kind == token.FLOAT {
-		x, _ = strconv.ParseFloat(xVisitor.res, 64)
-		y, _ = strconv.ParseFloat(yVisitor.res, 64)
-	} else {
-		x, _ = strconv.Atoi(xVisitor.res)
-		y, _ = strconv.Atoi(yVisitor.res)
+		x, _ := strconv.ParseFloat(xVisitor.res, 64)
+		y, _ := strconv.ParseFloat(yVisitor.res, 64)
+		switch op {
+		case token.ADD:
+			v.res, v.kind = fmt.Sprintf("%f", x+y), token.FLOAT
+		case token.SUB:
+			v.res, v.kind = fmt.Sprintf("%f", x-y), token.FLOAT
+		case token.MUL:
+			v.res, v.kind = fmt.Sprintf("%f", x*y), token.FLOAT
+		case token.QUO:
+			v.res, v.kind = fmt.Sprintf("%f", x/y), token.FLOAT
+		case token.REM:
+			v.res, v.kind = fmt.Sprintf("%f", x+y), token.FLOAT
+		}
+		return
 	}
 
-	_, ok := x.(float64)
+	x, _ := strconv.Atoi(xVisitor.res)
+	y, _ := strconv.Atoi(yVisitor.res)
 	switch op {
 	case token.ADD:
-		if ok {
-			v.res, v.kind = fmt.Sprintf("%f", x.(float64)+y.(float64)), token.FLOAT
-			return
-		}
-		v.res, v.kind = fmt.Sprintf("%d", x.(int)+y.(int)), token.INT
+		v.res, v.kind = fmt.Sprintf("%d", x+y), token.INT
 	case token.SUB:
-		if ok {
-			v.res, v.kind = fmt.Sprintf("%f", x.(float64)-y.(float64)), token.FLOAT
-			return
-		}
-		v.res, v.kind = fmt.Sprintf("%d", x.(int)-y.(int)), token.INT
+		v.res, v.kind = fmt.Sprintf("%d", x-y), token.INT
 	case token.MUL:
-		if ok {
-			v.res, v.kind = fmt.Sprintf("%f", x.(float64)*y.(float64)), token.FLOAT
-			return
-		}
-		v.res, v.kind = fmt.Sprintf("%d", x.(int)*y.(int)), token.INT
+		v.res, v.kind = fmt.Sprintf("%d", x*y), token.INT
 	case token.QUO:
-		if ok {
-			v.res, v.kind = fmt.Sprintf("%f", x.(float64)/y.(float64)), token.FLOAT
-			return
-		}
-		v.res, v.kind = fmt.Sprintf("%d", x.(int)/y.(int)), token.INT
+		v.res, v.kind = fmt.Sprintf("%d", x/y), token.INT
 	case token.REM:
-		if ok {
-			v.err = fmt.Errorf("operator %s is not supported on untyped float: %w", "%", ErrInvalidOperationOnFloat)
-		}
-		v.res, v.kind = fmt.Sprintf("%d", x.(int)%y.(int)), token.INT
+		v.res, v.kind = fmt.Sprintf("%d", x%y), token.INT
 	}
 }
 
@@ -115,46 +106,91 @@ func (v *visitor) comparison(xVisitor, yVisitor *visitor, op token.Token) {
 	}
 
 	if xVisitor.kind == token.STRING || yVisitor.kind == token.STRING {
-		v.res = strconv.FormatBool(xVisitor.res > yVisitor.res)
+		switch op {
+		case token.GTR:
+			v.res = strconv.FormatBool(xVisitor.res > yVisitor.res)
+		case token.GEQ:
+			v.res = strconv.FormatBool(xVisitor.res >= yVisitor.res)
+		case token.LSS:
+			v.res = strconv.FormatBool(xVisitor.res > yVisitor.res)
+		case token.LEQ:
+			v.res = strconv.FormatBool(xVisitor.res >= yVisitor.res)
+		}
 		return
 	}
 
-	var x, y interface{}
 	if xVisitor.kind == token.FLOAT || yVisitor.kind == token.FLOAT {
-		x, _ = strconv.ParseFloat(xVisitor.res, 64)
-		y, _ = strconv.ParseFloat(yVisitor.res, 64)
-	} else {
-		x, _ = strconv.Atoi(xVisitor.res)
-		y, _ = strconv.Atoi(yVisitor.res)
+		x, _ := strconv.ParseFloat(xVisitor.res, 64)
+		y, _ := strconv.ParseFloat(yVisitor.res, 64)
+		switch op {
+		case token.GTR:
+			v.res = strconv.FormatBool(x > y)
+		case token.GEQ:
+			v.res = strconv.FormatBool(x >= y)
+		case token.LSS:
+			v.res = strconv.FormatBool(x < y)
+		case token.LEQ:
+			v.res = strconv.FormatBool(x <= y)
+		}
+		return
 	}
 
-	_, ok := x.(float64)
+	x, _ := strconv.Atoi(xVisitor.res)
+	y, _ := strconv.Atoi(yVisitor.res)
 	switch op {
 	case token.GTR:
-		if ok {
-			v.res = strconv.FormatBool(x.(float64) > y.(float64))
-			return
-		}
-		v.res = strconv.FormatBool(x.(int) > y.(int))
+		v.res = strconv.FormatBool(x > y)
 	case token.GEQ:
-		if ok {
-			v.res = strconv.FormatBool(x.(float64) >= y.(float64))
-			return
-		}
-		v.res = strconv.FormatBool(x.(int) >= y.(int))
+		v.res = strconv.FormatBool(x >= y)
 	case token.LSS:
-		if ok {
-			v.res = strconv.FormatBool(x.(float64) < y.(float64))
-			return
-		}
-		v.res = strconv.FormatBool(x.(int) < y.(int))
+		v.res = strconv.FormatBool(x < y)
 	case token.LEQ:
-		if ok {
-			v.res = strconv.FormatBool(x.(float64) <= y.(float64))
-			return
-		}
-		v.res = strconv.FormatBool(x.(int) <= y.(int))
+		v.res = strconv.FormatBool(x <= y)
 	}
+}
+
+func (v *visitor) logical(xVisitor, yVisitor *visitor, op token.Token) {
+	var x, y bool
+	x, v.err = strconv.ParseBool(xVisitor.res)
+	if v.err != nil {
+		return
+	}
+	y, v.err = strconv.ParseBool(yVisitor.res)
+	if v.err != nil {
+		return
+	}
+	if op == token.LAND {
+		v.res = strconv.FormatBool(x && y)
+		return
+	}
+	v.res = strconv.FormatBool(x || y) // token.LOR
+}
+
+func (v *visitor) visitBinary(binaryExpr *ast.BinaryExpr) ast.Visitor {
+	xVisitor := &visitor{}
+	ast.Walk(xVisitor, binaryExpr.X)
+	if xVisitor.err != nil {
+		v.err = xVisitor.err
+		return nil
+	}
+	yVisitor := &visitor{}
+	ast.Walk(yVisitor, binaryExpr.Y)
+	if yVisitor.err != nil {
+		v.err = yVisitor.err
+		return nil
+	}
+
+	switch binaryExpr.Op {
+	case token.EQL, token.NEQ, token.GTR, token.GEQ, token.LSS, token.LEQ:
+		v.comparison(xVisitor, yVisitor, binaryExpr.Op)
+	case token.ADD, token.SUB, token.MUL, token.QUO, token.REM:
+		v.arithmetic(xVisitor, yVisitor, binaryExpr.Op)
+	case token.LAND, token.LOR:
+		v.logical(xVisitor, yVisitor, binaryExpr.Op)
+	default:
+		v.err = ErrUnsupportedOperator
+	}
+	return nil
 }
 
 func (v *visitor) Visit(node ast.Node) ast.Visitor {
@@ -168,42 +204,7 @@ func (v *visitor) Visit(node ast.Node) ast.Visitor {
 	case *ast.UnaryExpr:
 		return v.visitUnary(d)
 	case *ast.BinaryExpr:
-		xVisitor := &visitor{}
-		ast.Walk(xVisitor, d.X)
-		if xVisitor.err != nil {
-			v.err = xVisitor.err
-			return nil
-		}
-		yVisitor := &visitor{}
-		ast.Walk(yVisitor, d.Y)
-		if yVisitor.err != nil {
-			v.err = yVisitor.err
-			return nil
-		}
-		switch d.Op {
-		case token.EQL, token.NEQ, token.GTR, token.GEQ, token.LSS, token.LEQ:
-			v.comparison(xVisitor, yVisitor, d.Op)
-		case token.ADD, token.SUB, token.MUL, token.QUO, token.REM:
-			v.arithmetic(xVisitor, yVisitor, d.Op)
-		case token.LAND, token.LOR:
-			var x, y bool
-			x, v.err = strconv.ParseBool(xVisitor.res)
-			if v.err != nil {
-				return nil
-			}
-			y, v.err = strconv.ParseBool(yVisitor.res)
-			if v.err != nil {
-				return nil
-			}
-			if d.Op == token.LAND {
-				v.res = strconv.FormatBool(x && y)
-				return nil
-			}
-			v.res = strconv.FormatBool(x || y)
-		default:
-			v.err = ErrUnsupportedOperator
-		}
-		return nil
+		return v.visitBinary(d)
 	case *ast.BasicLit:
 		v.res = d.Value
 		v.kind = d.Kind
