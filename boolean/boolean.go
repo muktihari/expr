@@ -15,8 +15,8 @@ var ErrUnsupportedOperator = errors.New("unsupported operator")
 // ErrInvalidOperationOnFloat is error invalid operation on float
 var ErrInvalidOperationOnFloat = errors.New("invalid operation on float")
 
-// ErrIntegerDividedByZero occurs when x/y and y equals to 0, Go does not allow integer to be devided by zero
-var ErrIntegerDividedByZero = errors.New("integer divide by zero")
+// ErrIntegerDividedByZero occurs when x/y and y equals to 0, Go does not allow integer to be divided by zero
+var ErrIntegerDividedByZero = errors.New("integer divided by zero")
 
 // Visitor is boolean visitor interface
 type Visitor interface {
