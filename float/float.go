@@ -26,6 +26,42 @@ type visitor struct {
 	err error
 }
 
+func (v *visitor) visitBinary(binaryExpr *ast.BinaryExpr) ast.Visitor {
+	switch binaryExpr.Op {
+	case token.ADD, token.SUB, token.MUL, token.QUO:
+	default:
+		v.err = ErrUnsupportedOperator
+		return nil
+	}
+
+	x := &visitor{}
+	ast.Walk(x, binaryExpr.X)
+	if x.err != nil {
+		v.err = x.err
+		return nil
+	}
+
+	y := &visitor{}
+	ast.Walk(y, binaryExpr.Y)
+	if y.err != nil {
+		v.err = y.err
+		return nil
+	}
+
+	switch binaryExpr.Op {
+	case token.ADD:
+		v.res = x.res + y.res
+	case token.SUB:
+		v.res = x.res - y.res
+	case token.MUL:
+		v.res = x.res * y.res
+	case token.QUO:
+		v.res = x.res / y.res
+	}
+
+	return nil
+}
+
 func (v *visitor) Visit(node ast.Node) ast.Visitor {
 	if node == nil || v.err != nil {
 		return nil
@@ -35,39 +71,7 @@ func (v *visitor) Visit(node ast.Node) ast.Visitor {
 	case *ast.ParenExpr:
 		return v.Visit(d.X)
 	case *ast.BinaryExpr:
-		switch d.Op {
-		case token.ADD, token.SUB, token.MUL, token.QUO:
-			xVisitor := &visitor{}
-			ast.Walk(xVisitor, d.X)
-			if xVisitor.err != nil {
-				v.err = xVisitor.err
-				return nil
-			}
-			x := xVisitor.res
-
-			yVisitor := &visitor{}
-			ast.Walk(yVisitor, d.Y)
-			if yVisitor.err != nil {
-				v.err = yVisitor.err
-				return nil
-			}
-			y := yVisitor.res
-
-			switch d.Op {
-			case token.ADD:
-				v.res = x + y
-			case token.SUB:
-				v.res = x - y
-			case token.MUL:
-				v.res = x * y
-			case token.QUO:
-				v.res = x / y
-			}
-			return nil
-		default:
-			v.err = ErrUnsupportedOperator
-			return nil
-		}
+		return v.visitBinary(d)
 	case *ast.BasicLit:
 		switch d.Kind {
 		case token.INT:
