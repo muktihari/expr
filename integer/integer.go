@@ -10,8 +10,8 @@ import (
 // ErrUnsupportedOperator is error unsupported operator
 var ErrUnsupportedOperator = errors.New("unsupported operator")
 
-// ErrIntegerDividedByZero occurs when x/y and y equals to 0, Go does not allow integer to be devided by zero
-var ErrIntegerDividedByZero = errors.New("integer divide by zero")
+// ErrIntegerDividedByZero occurs when x/y and y equals to 0, Go does not allow integer to be divided by zero
+var ErrIntegerDividedByZero = errors.New("integer divided by zero")
 
 // Visitor is integer visitor interface
 type Visitor interface {
