@@ -18,6 +18,10 @@ import (
 // - Supported operators:
 // 	- Arithmetic: [+, -, *, /, %]
 // 	- Bitwise: [&, |, ^, &^, <<, >>]
+// - Notes:
+//  - << and >> operators are not permitted to be used in signed integer for go version less than 1.13.x.
+//  - Reference: golang.org/doc/go1.13#language
+//  - Even if bitwise is supported, the priority operation is not granted, any bit operation is advised to be put in parentheses.
 func Int(str string) (int, error) {
 	expr, err := parser.ParseExpr(str)
 	if err != nil {
