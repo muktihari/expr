@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/muktihari/expr"
+	"github.com/muktihari/expr/boolean"
 	"github.com/muktihari/expr/float"
 	"github.com/muktihari/expr/integer"
 )
@@ -142,6 +143,7 @@ func TestBool(t *testing.T) {
 		{In: "-4 * -2 > -1", Eq: true},
 		{In: "10 % 2 > -2", Eq: true},
 		{In: "10 % 2 < 1", Eq: true},
+		{In: "10.2 % 2 > 2", Err: boolean.ErrInvalidOperationOnFloat},
 	}
 
 	for _, tc := range tt {

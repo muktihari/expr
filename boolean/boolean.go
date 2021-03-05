@@ -77,7 +77,7 @@ func (v *visitor) arithmetic(xVisitor, yVisitor *visitor, op token.Token) {
 		case token.QUO:
 			v.res, v.kind = fmt.Sprintf("%f", x/y), token.FLOAT
 		case token.REM:
-			v.res, v.kind = fmt.Sprintf("%f", x+y), token.FLOAT
+			v.err = ErrInvalidOperationOnFloat
 		}
 		return
 	}
