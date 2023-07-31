@@ -119,9 +119,9 @@ func (v *visitor) comparison(xVisitor, yVisitor *visitor, op token.Token) {
 		case token.GEQ:
 			v.res = strconv.FormatBool(xVisitor.res >= yVisitor.res)
 		case token.LSS:
-			v.res = strconv.FormatBool(xVisitor.res > yVisitor.res)
+			v.res = strconv.FormatBool(xVisitor.res < yVisitor.res)
 		case token.LEQ:
-			v.res = strconv.FormatBool(xVisitor.res >= yVisitor.res)
+			v.res = strconv.FormatBool(xVisitor.res <= yVisitor.res)
 		}
 		return
 	}
