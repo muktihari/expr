@@ -50,6 +50,7 @@ func TestInt(t *testing.T) {
 	}
 
 	for _, tc := range tt {
+		tc := tc
 		t.Run(tc.In, func(t *testing.T) {
 			v, err := expr.Int(tc.In)
 			if err != tc.Err {
@@ -99,12 +100,12 @@ func TestFloat64(t *testing.T) {
 	}
 
 	for _, tc := range tt {
+		tc := tc
 		t.Run(tc.In, func(t *testing.T) {
 			v, err := expr.Float64(tc.In)
 			if err != tc.Err {
 				t.Fatalf("expected %v, got: %v", tc.Err, err)
 			}
-
 			if v != tc.Eq {
 				t.Fatalf("expected: %f, got: %f", tc.Eq, v)
 			}
@@ -144,9 +145,20 @@ func TestBool(t *testing.T) {
 		{In: "10 % 2 > -2", Eq: true},
 		{In: "10 % 2 < 1", Eq: true},
 		{In: "10.2 % 2 > 2", Err: boolean.ErrInvalidOperationOnFloat},
+		{In: `"a" > "a"`, Eq: false},
+		{In: `"a" >= "b"`, Eq: false},
+		{In: `"b" > "a"`, Eq: true},
+		{In: `"b" >= "a"`, Eq: true},
+		{In: `"a" < "b"`, Eq: true},
+		{In: `"a" <= "b"`, Eq: true},
+		{In: `"b" < "a"`, Eq: false},
+		{In: `"b" <= "a"`, Eq: false},
+		{In: `"a" <= "a"`, Eq: true},
+		{In: `"a" >= "a"`, Eq: true},
 	}
 
 	for _, tc := range tt {
+		tc := tc
 		t.Run(tc.In, func(t *testing.T) {
 			v, err := expr.Bool(tc.In)
 			if err != tc.Err {
