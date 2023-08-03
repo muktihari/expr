@@ -1,3 +1,4 @@
+// Deprecated: This package is no longer maintained and might be deleted in the future, use package visitor instead.
 package float
 
 import (
@@ -11,12 +12,22 @@ import (
 var ErrUnsupportedOperator = errors.New("unsupported operator")
 
 // Visitor is float visitor interface
+//
+// Deprecated: use expr.Visitor instead.
 type Visitor interface {
 	Visit(node ast.Node) ast.Visitor
 	Result() (float64, error)
 }
 
 // NewVisitor creates new float visitor
+//
+// Deprecated: use this instead:
+//
+// v := expr.NewVisitor(
+//
+//	expr.WithNumericType(visitor.NumericTypeFloat)
+//
+// ).
 func NewVisitor() Visitor {
 	return &visitor{}
 }

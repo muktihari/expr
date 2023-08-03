@@ -1,3 +1,4 @@
+// Deprecated: This package is no longer maintained and might be deleted in the future, use package visitor instead.
 package boolean
 
 import (
@@ -19,12 +20,16 @@ var ErrInvalidOperationOnFloat = errors.New("invalid operation on float")
 var ErrIntegerDividedByZero = errors.New("integer divided by zero")
 
 // Visitor is boolean visitor interface
+//
+// Deprecated: use expr.Visitor instead.
 type Visitor interface {
 	Visit(node ast.Node) ast.Visitor
 	Result() (bool, error)
 }
 
 // NewVisitor creates new boolean visitor
+//
+// Deprecated: use expr.NewVisitor() instead.
 func NewVisitor() Visitor {
 	return &visitor{}
 }

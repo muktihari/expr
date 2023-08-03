@@ -1,3 +1,4 @@
+// Deprecated: This package is no longer maintained and might be deleted in the future, use package visitor instead.
 package integer
 
 import (
@@ -14,12 +15,24 @@ var ErrUnsupportedOperator = errors.New("unsupported operator")
 var ErrIntegerDividedByZero = errors.New("integer divided by zero")
 
 // Visitor is integer visitor interface
+//
+// Deprecated: use expr.Visitor instead.
 type Visitor interface {
 	Visit(node ast.Node) ast.Visitor
 	Result() (int, error)
 }
 
 // NewVisitor creates new integer visitor
+//
+// Deprecated: use this instead:
+//
+// v := expr.NewVisitor(
+//
+//	expr.WithNumericType(visitor.NumericTypeInt),
+//
+//	expr.WithAllowIntegerDividedByZero(true),
+//
+// )
 func NewVisitor() Visitor {
 	return &visitor{}
 }
