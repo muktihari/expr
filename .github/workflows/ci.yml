@@ -6,8 +6,6 @@ name: CI
 on:
   push:
     branches: [ "benchmark" ]
-  pull_request:
-    branches: [ "benchmark" ]
 
 jobs:
 
