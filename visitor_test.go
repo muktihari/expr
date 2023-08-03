@@ -39,12 +39,12 @@ func TestVisit(t *testing.T) {
 		{
 			in:            "1 + 1",
 			expectedValue: "2",
-			expectedKind:  expr.KindInt,
+			expectedKind:  expr.KindFloat,
 		},
 		{
 			in:            "1 + 2 * 10",
 			expectedValue: "21",
-			expectedKind:  expr.KindInt,
+			expectedKind:  expr.KindFloat,
 		},
 		{
 			in:            "2.5 * 2.1",
@@ -91,7 +91,7 @@ func TestVisit(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			v := &expr.Visitor{}
+			v := expr.NewVisitor(expr.WithNumericType(expr.NumericTypeAuto))
 			ast.Walk(v, e)
 
 			if err := v.Err(); !errors.Is(err, tc.expectedErr) {
