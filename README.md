@@ -52,7 +52,7 @@ Expr is a simple, lightweight and performant programming toolkit for evaluating 
 
 ```go
     str := "(2+1i) + (2+2i)"
-    v, err := expr.Bool(str)
+    v, err := expr.Any(str)
     if err != nil {
         panic(err)
     }
@@ -93,7 +93,7 @@ Expr is a simple, lightweight and performant programming toolkit for evaluating 
 
 ```go
     str := "(2+1i) + (2+2i)"
-    v, err := expr.Float64(str)
+    v, err := expr.Complex128(str)
     if err != nil {
         panic(err)
     }
