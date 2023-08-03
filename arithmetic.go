@@ -37,12 +37,8 @@ func arithmetic(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
 		return
 	}
 
-	if vx.kind == KindFloat || vy.kind == KindFloat {
-		calculateFloat(v, vx, vy, binaryExpr)
-		return
-	}
-
-	calculateInt(v, vx, vy, binaryExpr)
+	// calculate any others float64
+	calculateFloat(v, vx, vy, binaryExpr)
 }
 
 func newArithmeticNonNumericError(v *Visitor, e ast.Expr) error {

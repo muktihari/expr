@@ -90,6 +90,9 @@ func defaultOptions() *options {
 	}
 }
 
+// NewVisitor create new Visitor. If Option is not specified, these following default options will be set:
+//   - allowIntegerDividedByZero: true
+//   - numericType:               NumericTypeAuto
 func NewVisitor(opts ...Option) *Visitor {
 	options := defaultOptions()
 	for _, opt := range opts {

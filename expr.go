@@ -40,6 +40,10 @@ func Any(str string) (interface{}, error) {
 		return v, nil
 	case KindFloat:
 		v, _ := strconv.ParseFloat(v.Value(), 64)
+		vInt := int64(v)
+		if v == float64(vInt) {
+			return vInt, nil
+		}
 		return v, nil
 	case KindImag:
 		v, _ := strconv.ParseComplex(v.Value(), 128)
