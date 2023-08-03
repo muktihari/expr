@@ -1,4 +1,4 @@
-// Deprecated: This package is no longer maintained and might be deleted in the future, use package visitor instead.
+// Deprecated: This package is no longer maintained and might be deleted in the future, use expr.Visitor instead.
 package float
 
 import (
