@@ -59,6 +59,8 @@ func BenchmarkFloat64(b *testing.B) {
 			}
 		})
 	}
+
+	b.Fail()
 }
 
 func BenchmarkBoolean(b *testing.B) {
