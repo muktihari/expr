@@ -33,6 +33,11 @@ Expr is a simple, lightweight and performant programming toolkit for evaluating 
 ```
 
 ## Usage
+### Bind
+For binding variables into expr string, see [Bind](https://github.com/muktihari/expr/blob/master/bind/README.md)
+
+### Explain
+For explaining step-by-step operations, see [Explain](https://github.com/muktihari/expr/blob/master/explain/README.md)
 
 ### Any
 - Any parses the given expr string into any type it returns as a result. e.g:

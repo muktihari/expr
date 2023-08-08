@@ -10,8 +10,6 @@ var (
 	ErrUnsupportedOperator = errors.New("unsupported operator")
 	// ErrUnaryOperation occurs when unary operation failed
 	ErrUnaryOperation = errors.New("unary operation")
-	// ErrUnsupportedBasicLit occurs when basic lit is not supported
-	ErrUnsupportedBasicLit = errors.New("unsupported basic type literal")
 	// ErrArithmeticOperation occurs when either x or y is not int or float
 	ErrArithmeticOperation = errors.New("arithmetic operation")
 	// ErrIntegerDividedByZero occurs when x/y and y equals to 0 and AllowIntDivByZero == false (default).

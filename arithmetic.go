@@ -31,13 +31,13 @@ func arithmetic(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
 		return
 	}
 
-	// Auto figure out value type
+	// NumericTypeAuto: Auto figure out value type
 	if vx.kind == KindImag || vy.kind == KindImag {
 		calculateComplex(v, vx, vy, binaryExpr)
 		return
 	}
 
-	// calculate any others float64
+	// calculate other types as float64
 	calculateFloat(v, vx, vy, binaryExpr)
 }
 

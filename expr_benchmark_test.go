@@ -58,25 +58,23 @@ func BenchmarkAny(b *testing.B) {
 }
 
 func BenchmarkBoolean(b *testing.B) {
-	for i, e := range exprs {
-		i, e := i, e
-		kind := expr.Kind(i)
-		if kind != expr.KindBoolean {
-			continue
-		}
+	var (
+		e string = exprs[expr.KindBoolean]
+		r bool   = true
+	)
 
-		b.Run(kind.String(), func(b *testing.B) {
-			for i := 0; i < b.N; i++ {
-				v, err := expr.Bool(e)
-				if err != nil {
-					b.Fatalf("expected nil, got: %v", err)
-				}
-				if v != true {
-					b.Fatalf("expected %t, got: %t", true, v)
-				}
+	b.Run(expr.KindBoolean.String(), func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			v, err := expr.Bool(e)
+			if err != nil {
+				b.Fatalf("expected nil, got: %v", err)
 			}
-		})
-	}
+			if v != r {
+				b.Fatalf("expected %t, got: %t", true, v)
+			}
+		}
+	})
+
 }
 
 func BenchmarkComplex128(b *testing.B) {
