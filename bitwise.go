@@ -18,17 +18,24 @@ func bitwise(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
 		return
 	}
 
-	if vx.kind != KindInt {
-		v.err = newBitwiseNonIntegerError(vx, binaryExpr.X)
-		return
+	// NumericTypeAuto: check whether both values are represent integers
+	if v.options.numericType == NumericTypeAuto {
+		x := parseFloat(vx.value, vx.kind)
+		f := parseFloat(vy.value, vy.kind)
+
+		if x != float64(int64(x)) {
+			v.err = newBitwiseNonIntegerError(vx, binaryExpr.X)
+			return
+		}
+
+		if f != float64(int64(f)) {
+			v.err = newBitwiseNonIntegerError(vy, binaryExpr.Y)
+			return
+		}
 	}
 
-	if vy.kind != KindInt {
-		v.err = newBitwiseNonIntegerError(vy, binaryExpr.Y)
-	}
-
-	x, _ := strconv.ParseInt(vx.value, 0, 64)
-	y, _ := strconv.ParseInt(vy.value, 0, 64)
+	x := parseInt(vx.value, vx.kind)
+	y := parseInt(vy.value, vy.kind)
 
 	v.kind = KindInt
 	switch binaryExpr.Op {

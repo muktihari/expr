@@ -24,16 +24,23 @@ func TestBitwise(t *testing.T) {
 			expectedErr: ErrBitwiseOperation,
 		},
 		{
-			v:           &Visitor{},
-			vx:          &Visitor{value: "2.0", kind: KindFloat},
-			vy:          &Visitor{value: "0b1001", kind: KindInt},
-			op:          token.AND, // "&"
-			expectedErr: ErrBitwiseOperation,
+			v:             &Visitor{},
+			vx:            &Visitor{value: "5.0", kind: KindFloat},
+			vy:            &Visitor{value: "3", kind: KindInt},
+			op:            token.AND, // "&"
+			expectedValue: "1",
 		},
 		{
-			v:           &Visitor{},
-			vx:          &Visitor{value: "0b1001", kind: KindInt},
-			vy:          &Visitor{value: "2.0", kind: KindFloat},
+			v:             &Visitor{},
+			vx:            &Visitor{value: "5", kind: KindInt},
+			vy:            &Visitor{value: "3.0", kind: KindFloat},
+			op:            token.AND, // "&"
+			expectedValue: "1",
+		},
+		{
+			v:           &Visitor{options: options{numericType: NumericTypeFloat}},
+			vx:          &Visitor{value: "5", kind: KindInt},
+			vy:          &Visitor{value: "3.0", kind: KindFloat},
 			op:          token.AND, // "&"
 			expectedErr: ErrBitwiseOperation,
 		},
@@ -79,6 +86,13 @@ func TestBitwise(t *testing.T) {
 			op:            token.SHR, // ">>"
 			expectedValue: "0b0100",
 		},
+		// {
+		// 	v:             &Visitor{},
+		// 	vx:            &Visitor{value: "4.0", kind: KindFloat},
+		// 	vy:            &Visitor{value: "10", kind: KindInt},
+		// 	op:            token.SHR, // "<<"
+		// 	expectedValue: "0b0100",
+		// },
 	}
 
 	for _, tc := range tt {
