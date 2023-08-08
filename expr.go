@@ -93,10 +93,10 @@ func Bool(str string) (bool, error) {
 	return false, ErrValueTypeMismatch
 }
 
-//	Complex128 parses the given expr string into complex128 as a result. e.g:
-//	   - "(2+1i) + (2+2i)" -> (4+3i)
-//	   - "(2.2+1i) + 2" -> (4.2+1i)
-//	   - "2 + 2" -> (4+0i)
+// Complex128 parses the given expr string into complex128 as a result. e.g:
+//   - "(2+1i) + (2+2i)" -> (4+3i)
+//   - "(2.2+1i) + 2" -> (4.2+1i)
+//   - "2 + 2" -> (4+0i)
 //
 // - Supported operators:
 //   - Arithmetic: [+, -, *, /]

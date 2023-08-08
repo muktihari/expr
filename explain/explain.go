@@ -28,13 +28,13 @@ func Explain(s string) ([]Step, error) {
 
 	// sanitize results
 	explains := make([]Step, len(v.transforms))
-	for i, tranform := range v.transforms {
+	for i, transform := range v.transforms {
 		explains[i] = Step{
-			EquivalentForms: []string{tranform.Segmented},
-			Result:          tranform.Evaluated,
+			EquivalentForms: []string{transform.Segmented},
+			Result:          transform.Evaluated,
 		}
-		if tranform.Segmented != tranform.EquivalentForm {
-			explains[i].EquivalentForms = append(explains[i].EquivalentForms, tranform.EquivalentForm)
+		if transform.Segmented != transform.EquivalentForm {
+			explains[i].EquivalentForms = append(explains[i].EquivalentForms, transform.EquivalentForm)
 		}
 	}
 

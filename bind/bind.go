@@ -1,4 +1,4 @@
-// bind is an helper to bind values into variables in the string expression.
+// bind is an helper to bind variable values into the string expression.
 package bind
 
 import (
@@ -199,7 +199,7 @@ func (b *Binder) Bind(s string, keyvals ...interface{}) (string, error) {
 	if isPrefixBegin {
 		if lenSuffix != 0 && !isBreakBySuffix {
 			return "", &SyntaxError{
-				Msg:   "suffix is specified but it is not properly ended",
+				Msg:   "suffix is specified but missing suffix at the end of s when it should be ended by a proper suffix",
 				Begin: begin,
 				End:   len(s),
 				Value: s[begin:],
@@ -213,7 +213,7 @@ func (b *Binder) Bind(s string, keyvals ...interface{}) (string, error) {
 	return strbuf.String(), nil
 }
 
-// Format formats given v type into string. withQuote specify whether non-boolean and non-numeric value to be string quoted.
+// Format formats given v type into string.
 func Format(v interface{}) string {
 	// declared common used types for faster conversion
 	switch val := v.(type) {
