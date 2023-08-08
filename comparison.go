@@ -135,8 +135,8 @@ func compareFloat(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
 }
 
 func compareInt(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
-	x := vx.value.(int64)
-	y := vy.value.(int64)
+	x := parseInt(vx.value, vx.kind)
+	y := parseInt(vy.value, vy.kind)
 
 	switch binaryExpr.Op {
 	case token.EQL:

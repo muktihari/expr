@@ -26,7 +26,10 @@ func Any(str string) (interface{}, error) {
 		return nil, err
 	}
 
-	v := NewVisitor()
+	v := NewVisitor(
+		WithAllowIntegerDividedByZero(true),
+		WithNumericType(NumericTypeAuto),
+	)
 	ast.Walk(v, expr)
 
 	if err := v.Err(); err != nil {
