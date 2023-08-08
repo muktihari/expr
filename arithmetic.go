@@ -1,15 +1,16 @@
 package expr
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
 	"math"
-	"strconv"
 
 	"github.com/muktihari/expr/conv"
 )
 
 func arithmetic(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
+	// numeric guards:
 	if vx.kind <= numeric_beg || vx.kind >= numeric_end {
 		v.err = newArithmeticNonNumericError(vx, binaryExpr.X)
 		return
@@ -44,7 +45,7 @@ func arithmetic(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
 func newArithmeticNonNumericError(v *Visitor, e ast.Expr) error {
 	s := conv.FormatExpr(e)
 	return &SyntaxError{
-		Msg: "result of \"" + s + "\" is \"" + v.value + "\" which is not a number",
+		Msg: "result of \"" + s + "\" is \"" + fmt.Sprintf("%v", v.value) + "\" which is not a number",
 		Pos: v.pos,
 		Err: ErrArithmeticOperation,
 	}
@@ -57,13 +58,13 @@ func calculateComplex(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
 
 	switch binaryExpr.Op {
 	case token.ADD:
-		v.value = strconv.FormatComplex(x+y, 'f', -1, 128)
+		v.value = x + y
 	case token.SUB:
-		v.value = strconv.FormatComplex(x-y, 'f', -1, 128)
+		v.value = x - y
 	case token.MUL:
-		v.value = strconv.FormatComplex(x*y, 'f', -1, 128)
+		v.value = x * y
 	case token.QUO:
-		v.value = strconv.FormatComplex(x/y, 'f', -1, 128)
+		v.value = x / y
 	case token.REM:
 		v.kind = KindIllegal
 		v.err = &SyntaxError{
@@ -82,15 +83,15 @@ func calculateFloat(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
 
 	switch binaryExpr.Op {
 	case token.ADD:
-		v.value = strconv.FormatFloat(x+y, 'f', -1, 64)
+		v.value = x + y
 	case token.SUB:
-		v.value = strconv.FormatFloat(x-y, 'f', -1, 64)
+		v.value = x - y
 	case token.MUL:
-		v.value = strconv.FormatFloat(x*y, 'f', -1, 64)
+		v.value = x * y
 	case token.QUO:
-		v.value = strconv.FormatFloat(x/y, 'f', -1, 64)
+		v.value = x / y
 	case token.REM:
-		v.value = strconv.FormatFloat(math.Mod(x, y), 'f', -1, 64)
+		v.value = math.Mod(x, y)
 	}
 }
 
@@ -101,15 +102,15 @@ func calculateInt(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
 
 	switch binaryExpr.Op {
 	case token.ADD:
-		v.value = strconv.FormatInt(x+y, 10)
+		v.value = x + y
 	case token.SUB:
-		v.value = strconv.FormatInt(x-y, 10)
+		v.value = x - y
 	case token.MUL:
-		v.value = strconv.FormatInt(x*y, 10)
+		v.value = x * y
 	case token.QUO:
 		if y == 0 {
 			if v.options.allowIntegerDividedByZero {
-				v.value = "0"
+				v.value = int64(0)
 				return
 			}
 			v.kind = KindIllegal
@@ -120,47 +121,50 @@ func calculateInt(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
 			}
 			return
 		}
-		v.value = strconv.FormatInt(x/y, 10)
+		v.value = x / y
 	case token.REM:
-		v.value = strconv.FormatInt(x%y, 10)
+		v.value = x % y
 	}
 }
 
-func parseComplex(s string, kind Kind) complex128 {
-	switch kind {
-	case KindImag, KindFloat:
-		v, _ := strconv.ParseComplex(s, 128)
-		return v
-	}
-
-	v, _ := strconv.ParseInt(s, 0, 64)
-	return complex(float64(v), 0)
-}
-
-func parseFloat(s string, kind Kind) float64 {
+func parseComplex(v interface{}, kind Kind) complex128 { // kind must be numeric
 	switch kind {
 	case KindImag:
-		v, _ := strconv.ParseComplex(s, 128)
+		v := v.(complex128)
+		return v
+	case KindFloat:
+		v := v.(float64)
+		return complex(v, 0)
+	default: // INT: 0xFF, 0b1010, 0o77, 071, 90
+		v := v.(int64)
+		return complex(float64(v), 0)
+	}
+}
+
+func parseFloat(v interface{}, kind Kind) float64 { // kind must be numeric
+	switch kind {
+	case KindImag:
+		v := v.(complex128)
 		return real(v)
 	case KindFloat:
-		v, _ := strconv.ParseFloat(s, 64)
+		v := v.(float64)
 		return v
 	default: // INT: 0xFF, 0b1010, 0o77, 071, 90
-		v, _ := strconv.ParseInt(s, 0, 64)
+		v := v.(int64)
 		return float64(v)
 	}
 }
 
-func parseInt(s string, kind Kind) int64 {
+func parseInt(v interface{}, kind Kind) int64 { // kind must be numeric
 	switch kind {
 	case KindImag:
-		v, _ := strconv.ParseComplex(s, 128)
+		v := v.(complex128)
 		return int64(real(v))
 	case KindFloat:
-		v, _ := strconv.ParseFloat(s, 64)
+		v := v.(float64)
 		return int64(v)
 	default: // INT: 0xFF, 0b1010, 0o77, 071, 90
-		v, _ := strconv.ParseInt(s, 0, 64)
+		v := v.(int64)
 		return v
 	}
 }

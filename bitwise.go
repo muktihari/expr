@@ -1,9 +1,9 @@
 package expr
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
-	"strconv"
 
 	"github.com/muktihari/expr/conv"
 )
@@ -25,32 +25,33 @@ func bitwise(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
 
 	if vy.kind != KindInt {
 		v.err = newBitwiseNonIntegerError(vy, binaryExpr.Y)
+		return
 	}
 
-	x, _ := strconv.ParseInt(vx.value, 0, 64)
-	y, _ := strconv.ParseInt(vy.value, 0, 64)
+	x := vx.value.(int64)
+	y := vy.value.(int64)
 
 	v.kind = KindInt
 	switch binaryExpr.Op {
 	case token.AND:
-		v.value = strconv.FormatInt(x&y, 10)
+		v.value = x & y
 	case token.OR:
-		v.value = strconv.FormatInt(x|y, 10)
+		v.value = x | y
 	case token.XOR:
-		v.value = strconv.FormatInt(x^y, 10)
+		v.value = x ^ y
 	case token.AND_NOT:
-		v.value = strconv.FormatInt(x&^y, 10)
+		v.value = x &^ y
 	case token.SHL:
-		v.value = strconv.FormatInt(x<<y, 10)
+		v.value = x << y
 	case token.SHR:
-		v.value = strconv.FormatInt(x>>y, 10)
+		v.value = x >> y
 	}
 }
 
 func newBitwiseNonIntegerError(v *Visitor, e ast.Expr) error {
 	s := conv.FormatExpr(e)
 	return &SyntaxError{
-		Msg: "result value of \"" + s + "\" is \"" + v.value + "\" which is not an integer",
+		Msg: "result value of \"" + s + "\" is \"" + fmt.Sprintf("%v", v.value) + "\" which is not an integer",
 		Pos: int(e.Pos()),
 		Err: ErrBitwiseOperation,
 	}

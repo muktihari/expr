@@ -3,7 +3,6 @@ package expr
 import (
 	"go/ast"
 	"go/parser"
-	"strconv"
 )
 
 // Any parses the given expr string into any type it returns as a result. e.g:
@@ -36,23 +35,24 @@ func Any(str string) (interface{}, error) {
 
 	switch v.Kind() {
 	case KindInt:
-		v, _ := strconv.ParseInt(v.Value(), 0, 64)
+		v := v.ValueAny().(int64)
 		return v, nil
 	case KindFloat:
-		v, _ := strconv.ParseFloat(v.Value(), 64)
+		v := v.ValueAny().(float64)
 		vInt := int64(v)
 		if v == float64(vInt) {
 			return vInt, nil
 		}
 		return v, nil
 	case KindImag:
-		v, _ := strconv.ParseComplex(v.Value(), 128)
+		v := v.ValueAny().(complex128)
 		return v, nil
 	case KindBoolean:
-		v, _ := strconv.ParseBool(v.Value())
+		v := v.ValueAny().(bool)
 		return v, nil
-	default:
-		return v.Value(), nil
+	default: // must be string
+		v := v.ValueAny().(string)
+		return v, nil
 	}
 }
 
@@ -86,7 +86,7 @@ func Bool(str string) (bool, error) {
 
 	switch v.kind {
 	case KindBoolean:
-		val, _ := strconv.ParseBool(v.Value())
+		val := v.ValueAny().(bool)
 		return val, nil
 	}
 
@@ -115,13 +115,13 @@ func Complex128(str string) (complex128, error) {
 
 	switch v.Kind() {
 	case KindImag:
-		v, _ := strconv.ParseComplex(v.Value(), 128)
+		v := v.ValueAny().(complex128)
 		return v, nil
 	case KindInt:
-		v, _ := strconv.ParseInt(v.Value(), 0, 64)
+		v := v.ValueAny().(int64)
 		return complex(float64(v), 0), nil
 	case KindFloat:
-		v, _ := strconv.ParseFloat(v.Value(), 64)
+		v := v.ValueAny().(float64)
 		return complex(v, 0), nil
 	}
 
@@ -151,10 +151,10 @@ func Float64(str string) (float64, error) {
 
 	switch v.Kind() {
 	case KindInt:
-		v, _ := strconv.ParseInt(v.Value(), 0, 64)
+		v := v.ValueAny().(int64)
 		return float64(v), nil
 	case KindFloat:
-		v, _ := strconv.ParseFloat(v.Value(), 64)
+		v := v.ValueAny().(float64)
 		return v, nil
 	}
 
@@ -205,10 +205,10 @@ func parseStringExprIntoInt64(str string, allowIntegerDividedByZero bool) (int64
 
 	switch v.Kind() {
 	case KindInt:
-		v, _ := strconv.ParseInt(v.Value(), 0, 64)
+		v := v.ValueAny().(int64)
 		return v, nil
 	case KindFloat:
-		v, _ := strconv.ParseFloat(v.Value(), 64)
+		v := v.ValueAny().(float64)
 		return int64(v), nil
 	}
 
