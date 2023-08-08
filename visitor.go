@@ -225,7 +225,7 @@ func (v *Visitor) visitBasicLit(basicLit *ast.BasicLit) ast.Visitor {
 		v.value, _ = strconv.ParseFloat(basicLit.Value, 64)
 	case token.IMAG:
 		v.kind = KindImag
-		v.value, _ = strconv.ParseComplex(basicLit.Value, 64)
+		v.value, _ = strconv.ParseComplex(basicLit.Value, 128)
 	case token.CHAR:
 		fallthrough // treat as string
 	case token.STRING:
