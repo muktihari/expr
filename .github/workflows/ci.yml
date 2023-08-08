@@ -20,4 +20,4 @@ jobs:
         go-version: '>=1.13'
 
     - name: Benchmark
-      run: go test -bench=. -benchmem
+      run: go test -bench=. ./... -benchmem
