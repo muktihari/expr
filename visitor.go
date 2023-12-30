@@ -1,10 +1,12 @@
 package expr
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/muktihari/expr/conv"
 )
@@ -16,8 +18,8 @@ const (
 	KindIllegal Kind = iota
 	KindBoolean      // true false
 
-	numeric_beg
 	// Identifiers of numeric type
+	numeric_beg
 	KindInt   // 12345
 	KindFloat // 123.45
 	KindImag  // 123.45i
@@ -78,7 +80,7 @@ type Visitor struct {
 	options options // Visitor's Option
 
 	kind  Kind
-	value string
+	value interface{}
 	pos   int
 	err   error
 }
@@ -104,8 +106,11 @@ func NewVisitor(opts ...Option) *Visitor {
 	}
 }
 
-// Value returns visitor's value
-func (v *Visitor) Value() string { return v.value }
+// Value returns visitor's value in string
+func (v *Visitor) Value() string { return fmt.Sprintf("%v", v.value) }
+
+// ValueAny returns visitor's value interface{}
+func (v *Visitor) ValueAny() interface{} { return v.value }
 
 // Kind returns visitor's kind
 func (v *Visitor) Kind() Kind { return v.kind }
@@ -135,10 +140,20 @@ func (v *Visitor) Visit(node ast.Node) ast.Visitor {
 	return v
 }
 
+var visitorPool = sync.Pool{
+	New: func() interface{} {
+		return new(Visitor)
+	},
+}
+
 func (v *Visitor) visitUnary(unaryExpr *ast.UnaryExpr) ast.Visitor {
 	switch unaryExpr.Op {
 	case token.NOT, token.ADD, token.SUB:
-		vx := &Visitor{options: v.options}
+		vx := visitorPool.Get().(*Visitor)
+		defer visitorPool.Put(vx)
+		vx.reset()
+		vx.options = v.options
+
 		ast.Walk(vx, unaryExpr.X)
 		if vx.err != nil {
 			v.err = vx.err
@@ -151,22 +166,25 @@ func (v *Visitor) visitUnary(unaryExpr *ast.UnaryExpr) ast.Visitor {
 			if vx.kind != KindBoolean {
 				s := conv.FormatExpr(unaryExpr.X)
 				v.err = &SyntaxError{
-					Msg: "could not do negation: result of \"" + s + "\" is \"" + vx.value + "\" not a boolean",
+					Msg: "could not do negation: result of \"" + s + "\" is \"" + fmt.Sprintf("%v", vx.value) + "\" not a boolean",
 					Pos: vx.pos,
 					Err: ErrUnaryOperation,
 				}
 				return nil
 			}
-			res, _ := strconv.ParseBool(vx.value)
-			v.value = strconv.FormatBool(!res)
+			res := vx.value.(bool)
+			v.value = !res
 		case token.ADD:
 			v.value = vx.value
 		case token.SUB:
-			if strings.HasPrefix(vx.value, "-") {
-				v.value = strings.TrimPrefix(vx.value, "-")
-				return nil
+			switch val := vx.value.(type) {
+			case complex128:
+				v.value = val * -1
+			case float64:
+				v.value = val * -1
+			case int64:
+				v.value = val * -1
 			}
-			v.value = "-" + vx.value
 		}
 	default:
 		v.err = &SyntaxError{
@@ -179,14 +197,22 @@ func (v *Visitor) visitUnary(unaryExpr *ast.UnaryExpr) ast.Visitor {
 }
 
 func (v *Visitor) visitBinary(binaryExpr *ast.BinaryExpr) ast.Visitor {
-	vx := &Visitor{options: v.options}
+	vx := visitorPool.Get().(*Visitor)
+	defer visitorPool.Put(vx)
+	vx.reset()
+	vx.options = v.options
+
 	ast.Walk(vx, binaryExpr.X)
 	if vx.err != nil {
 		v.err = vx.err
 		return nil
 	}
 
-	vy := &Visitor{options: v.options}
+	vy := visitorPool.Get().(*Visitor)
+	defer visitorPool.Put(vy)
+	vy.reset()
+	vy.options = v.options
+
 	ast.Walk(vy, binaryExpr.Y)
 	if vy.err != nil {
 		v.err = vy.err
@@ -207,14 +233,16 @@ func (v *Visitor) visitBinary(binaryExpr *ast.BinaryExpr) ast.Visitor {
 }
 
 func (v *Visitor) visitBasicLit(basicLit *ast.BasicLit) ast.Visitor {
-	v.value = basicLit.Value
 	switch basicLit.Kind {
 	case token.INT:
 		v.kind = KindInt
+		v.value, _ = strconv.ParseInt(basicLit.Value, 0, 64)
 	case token.FLOAT:
 		v.kind = KindFloat
+		v.value, _ = strconv.ParseFloat(basicLit.Value, 64)
 	case token.IMAG:
 		v.kind = KindImag
+		v.value, _ = strconv.ParseComplex(basicLit.Value, 128)
 	case token.CHAR:
 		fallthrough // treat as string
 	case token.STRING:
@@ -226,11 +254,18 @@ func (v *Visitor) visitBasicLit(basicLit *ast.BasicLit) ast.Visitor {
 
 func (v *Visitor) visitIndent(indent *ast.Ident) ast.Visitor {
 	v.kind, v.value = KindString, indent.String()
-	vb, err := strconv.ParseBool(v.value)
+	vb, err := strconv.ParseBool(indent.String())
 	if err != nil {
 		return nil
 	}
 
-	v.kind, v.value = KindBoolean, strconv.FormatBool(vb)
+	v.kind, v.value = KindBoolean, vb
 	return nil
+}
+
+func (v *Visitor) reset() {
+	v.err = nil
+	v.kind = KindIllegal
+	v.pos = 0
+	v.value = nil
 }

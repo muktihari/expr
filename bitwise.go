@@ -1,37 +1,42 @@
 package expr
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
-	"strconv"
 
 	"github.com/muktihari/expr/conv"
 )
 
 func bitwise(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
-	if v.options.numericType != NumericTypeAuto && v.options.numericType != NumericTypeInt {
-		v.err = &SyntaxError{
-			Msg: "could not do bitwise operation: numeric type is treated as non-integer",
-			Pos: int(binaryExpr.OpPos),
-			Err: ErrBitwiseOperation,
-		}
+	// No matters what options, having bolean here is invalid.
+	if vx.kind == KindBoolean {
+		v.err = newBitwiseNonIntegerError(vx, binaryExpr.X)
+		return
+	}
+	if vy.kind == KindBoolean {
+		v.err = newBitwiseNonIntegerError(vx, binaryExpr.Y)
 		return
 	}
 
-	// NumericTypeAuto: check whether both values are represent integers
-	if v.options.numericType == NumericTypeAuto {
+	switch v.options.numericType {
+	case NumericTypeAuto:
+		// NumericTypeAuto: check whether both values are represent integers
 		x := parseFloat(vx.value, vx.kind)
-		f := parseFloat(vy.value, vy.kind)
+		y := parseFloat(vy.value, vy.kind)
 
 		if x != float64(int64(x)) {
 			v.err = newBitwiseNonIntegerError(vx, binaryExpr.X)
 			return
 		}
 
-		if f != float64(int64(f)) {
+		if y != float64(int64(y)) {
 			v.err = newBitwiseNonIntegerError(vy, binaryExpr.Y)
 			return
 		}
+	case NumericTypeFloat, NumericTypeComplex:
+		v.err = newBitwiseNonIntegerError(vy, binaryExpr.Y)
+		return
 	}
 
 	x := parseInt(vx.value, vx.kind)
@@ -40,24 +45,24 @@ func bitwise(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
 	v.kind = KindInt
 	switch binaryExpr.Op {
 	case token.AND:
-		v.value = strconv.FormatInt(x&y, 10)
+		v.value = x & y
 	case token.OR:
-		v.value = strconv.FormatInt(x|y, 10)
+		v.value = x | y
 	case token.XOR:
-		v.value = strconv.FormatInt(x^y, 10)
+		v.value = x ^ y
 	case token.AND_NOT:
-		v.value = strconv.FormatInt(x&^y, 10)
+		v.value = x &^ y
 	case token.SHL:
-		v.value = strconv.FormatInt(x<<y, 10)
+		v.value = x << y
 	case token.SHR:
-		v.value = strconv.FormatInt(x>>y, 10)
+		v.value = x >> y
 	}
 }
 
 func newBitwiseNonIntegerError(v *Visitor, e ast.Expr) error {
 	s := conv.FormatExpr(e)
 	return &SyntaxError{
-		Msg: "result value of \"" + s + "\" is \"" + v.value + "\" which is not an integer",
+		Msg: "result value of \"" + s + "\" is \"" + fmt.Sprintf("%v", v.value) + "\" which is not an integer",
 		Pos: int(e.Pos()),
 		Err: ErrBitwiseOperation,
 	}

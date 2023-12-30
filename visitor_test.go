@@ -12,7 +12,7 @@ import (
 func TestVisit(t *testing.T) {
 	tt := []struct {
 		in            string
-		expectedValue string
+		expectedValue interface{}
 		expectedKind  expr.Kind
 		expectedErr   error
 	}{
@@ -23,37 +23,37 @@ func TestVisit(t *testing.T) {
 		},
 		{
 			in:            "'a' == 'a'",
-			expectedValue: "true",
+			expectedValue: true,
 			expectedKind:  expr.KindBoolean,
 		},
 		{
-			in:            "true && true",
-			expectedValue: "true",
-			expectedKind:  expr.KindBoolean,
+			in:            "-(20+10i)",
+			expectedValue: -(20 + 10i),
+			expectedKind:  expr.KindImag,
 		},
 		{
 			in:            "true && 20 > 9",
-			expectedValue: "true",
+			expectedValue: true,
 			expectedKind:  expr.KindBoolean,
 		},
 		{
 			in:            "1 + 1",
-			expectedValue: "2",
+			expectedValue: float64(2),
 			expectedKind:  expr.KindFloat,
 		},
 		{
 			in:            "1 + 2 * 10",
-			expectedValue: "21",
+			expectedValue: float64(21),
 			expectedKind:  expr.KindFloat,
 		},
 		{
 			in:            "2.5 * 2.1",
-			expectedValue: "5.25",
+			expectedValue: float64(5.25),
 			expectedKind:  expr.KindFloat,
 		},
 		{
 			in:            "2.50 > 2.4",
-			expectedValue: "true",
+			expectedValue: true,
 			expectedKind:  expr.KindBoolean,
 		},
 		{
@@ -63,7 +63,7 @@ func TestVisit(t *testing.T) {
 		},
 		{
 			in:            "4 == 0b0100",
-			expectedValue: "true",
+			expectedValue: true,
 			expectedKind:  expr.KindBoolean,
 		},
 		{
@@ -78,7 +78,7 @@ func TestVisit(t *testing.T) {
 		},
 		{
 			in:            "expr == expr",
-			expectedValue: "true",
+			expectedValue: true,
 			expectedKind:  expr.KindBoolean,
 		},
 	}
@@ -97,8 +97,8 @@ func TestVisit(t *testing.T) {
 			if err := v.Err(); !errors.Is(err, tc.expectedErr) {
 				t.Fatalf("expected err: %v, got: %v", tc.expectedErr, err)
 			}
-			if val := v.Value(); val != tc.expectedValue {
-				t.Fatalf("expected val: %v, got: %v", tc.expectedValue, val)
+			if val := v.ValueAny(); val != tc.expectedValue {
+				t.Fatalf("expected val: %v (%T), got: %v (%T)", tc.expectedValue, tc.expectedValue, val, val)
 			}
 			if kind := v.Kind(); kind != tc.expectedKind {
 				t.Fatalf("expected kind: %v, got: %v", tc.expectedKind, kind)
@@ -132,7 +132,7 @@ func TestVisit(t *testing.T) {
 				t.Fatalf("expected kind: %s, got: %s", tc.expected.Kind(), v.Kind())
 			}
 			if v.Value() != tc.expected.Value() {
-				t.Fatalf("expected value: %s, got: %s", tc.expected.Value(), v.Value())
+				t.Fatalf("expected value: %v, got: %v", tc.expected.Value(), v.Value())
 			}
 		})
 	}
