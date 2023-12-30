@@ -9,27 +9,38 @@ import (
 )
 
 func bitwise(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
-	if v.options.numericType != NumericTypeAuto && v.options.numericType != NumericTypeInt {
-		v.err = &SyntaxError{
-			Msg: "could not do bitwise operation: numeric type is treated as non-integer",
-			Pos: int(binaryExpr.OpPos),
-			Err: ErrBitwiseOperation,
-		}
-		return
-	}
-
-	if vx.kind != KindInt {
+	// No matters what options, having bolean here is invalid.
+	if vx.kind == KindBoolean {
 		v.err = newBitwiseNonIntegerError(vx, binaryExpr.X)
 		return
 	}
+	if vy.kind == KindBoolean {
+		v.err = newBitwiseNonIntegerError(vx, binaryExpr.Y)
+		return
+	}
 
-	if vy.kind != KindInt {
+	switch v.options.numericType {
+	case NumericTypeAuto:
+		// NumericTypeAuto: check whether both values are represent integers
+		x := parseFloat(vx.value, vx.kind)
+		y := parseFloat(vy.value, vy.kind)
+
+		if x != float64(int64(x)) {
+			v.err = newBitwiseNonIntegerError(vx, binaryExpr.X)
+			return
+		}
+
+		if y != float64(int64(y)) {
+			v.err = newBitwiseNonIntegerError(vy, binaryExpr.Y)
+			return
+		}
+	case NumericTypeFloat, NumericTypeComplex:
 		v.err = newBitwiseNonIntegerError(vy, binaryExpr.Y)
 		return
 	}
 
-	x := vx.value.(int64)
-	y := vy.value.(int64)
+	x := parseInt(vx.value, vx.kind)
+	y := parseInt(vy.value, vy.kind)
 
 	v.kind = KindInt
 	switch binaryExpr.Op {
