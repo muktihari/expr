@@ -6,6 +6,7 @@ import (
 	"go/token"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/muktihari/expr/conv"
 )
@@ -111,8 +112,6 @@ func (v *Visitor) Value() string { return fmt.Sprintf("%v", v.value) }
 // ValueAny returns visitor's value interface{}
 func (v *Visitor) ValueAny() interface{} { return v.value }
 
-// Value returns visitor's value
-
 // Kind returns visitor's kind
 func (v *Visitor) Kind() Kind { return v.kind }
 
@@ -141,10 +140,20 @@ func (v *Visitor) Visit(node ast.Node) ast.Visitor {
 	return v
 }
 
+var visitorPool = sync.Pool{
+	New: func() interface{} {
+		return new(Visitor)
+	},
+}
+
 func (v *Visitor) visitUnary(unaryExpr *ast.UnaryExpr) ast.Visitor {
 	switch unaryExpr.Op {
 	case token.NOT, token.ADD, token.SUB:
-		vx := &Visitor{options: v.options}
+		vx := visitorPool.Get().(*Visitor)
+		defer visitorPool.Put(vx)
+		vx.reset()
+		vx.options = v.options
+
 		ast.Walk(vx, unaryExpr.X)
 		if vx.err != nil {
 			v.err = vx.err
@@ -188,14 +197,22 @@ func (v *Visitor) visitUnary(unaryExpr *ast.UnaryExpr) ast.Visitor {
 }
 
 func (v *Visitor) visitBinary(binaryExpr *ast.BinaryExpr) ast.Visitor {
-	vx := &Visitor{options: v.options}
+	vx := visitorPool.Get().(*Visitor)
+	defer visitorPool.Put(vx)
+	vx.reset()
+	vx.options = v.options
+
 	ast.Walk(vx, binaryExpr.X)
 	if vx.err != nil {
 		v.err = vx.err
 		return nil
 	}
 
-	vy := &Visitor{options: v.options}
+	vy := visitorPool.Get().(*Visitor)
+	defer visitorPool.Put(vy)
+	vy.reset()
+	vy.options = v.options
+
 	ast.Walk(vy, binaryExpr.Y)
 	if vy.err != nil {
 		v.err = vy.err
@@ -244,4 +261,11 @@ func (v *Visitor) visitIndent(indent *ast.Ident) ast.Visitor {
 
 	v.kind, v.value = KindBoolean, vb
 	return nil
+}
+
+func (v *Visitor) reset() {
+	v.err = nil
+	v.kind = KindIllegal
+	v.pos = 0
+	v.value = nil
 }
