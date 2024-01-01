@@ -5,19 +5,20 @@
 [![CodeCov](https://codecov.io/gh/muktihari/expr/branch/master/graph/badge.svg)](https://codecov.io/gh/muktihari/expr)
 [![Go Report Card](https://goreportcard.com/badge/github.com/muktihari/expr)](https://goreportcard.com/report/github.com/muktihari/expr)
 
-
 Expr is a simple, lightweight and performant programming toolkit for evaluating basic mathematical expression and boolean expression. The resulting value is one of these following primitive types: string, boolean, numerical (complex, float, integer).
 
 ## Supported Numerical Notations
+
 ```js
 - Binary (base-2)       : 0b1011
 - Octal (base-8)        : 0o13 or 013
 - Decimal (base-10)     : 11
-- Hexadecimal (base-16) : 0xB 
+- Hexadecimal (base-16) : 0xB
 - Scientific            : 11e0
 ```
 
 ## Expression Examples
+
 ```js
 "1 + 1"             -> 2
 "1.0 / 2"           -> 0.5
@@ -33,27 +34,31 @@ Expr is a simple, lightweight and performant programming toolkit for evaluating 
 ```
 
 ## Usage
-### Bind
-For binding variables into expr string, see [Bind](https://github.com/muktihari/expr/blob/master/bind/README.md)
 
-### Explain
-For explaining step-by-step operations, see [Explain](https://github.com/muktihari/expr/blob/master/explain/README.md)
+### Bind
+
+For binding variables into expr string, see [Bind](./bind/README.md)
+
+### Explain (Experimental)
+
+For explaining step-by-step operations, see [Explain](./exp/explain/README.md)
 
 ### Any
+
 - Any parses the given expr string into any type it returns as a result. e.g:
-    - "1 < 2" -> true
-    - "true || false" -> true
-    - "2 + 2" -> 4
-    - "4 << 10" -> 4906
-    - "2.2 + 2" -> 4.2
-    - "(2+1i) + (2+2i)" -> (4+3i)
-    - ""abc" == "abc"" -> true
-    - ""abc"" -> "abc"
+  - "1 < 2" -> true
+  - "true || false" -> true
+  - "2 + 2" -> 4
+  - "4 << 10" -> 4906
+  - "2.2 + 2" -> 4.2
+  - "(2+1i) + (2+2i)" -> (4+3i)
+  - ""abc" == "abc"" -> true
+  - ""abc"" -> "abc"
 - Supported operators:
-    - Comparison: [==, !=, <, <=, >, >=]
-    - Logical: [&&, ||, !]
-    - Arithmetic: [+, -, *, /, %] (% operator does not work for complex number)
-    - Bitwise: [&, |, ^, &^, <<, >>] (only work for integer values)
+  - Comparison: [==, !=, <, <=, >, >=]
+  - Logical: [&&, ||, !]
+  - Arithmetic: [+, -, *, /, %] (% operator does not work for complex number)
+  - Bitwise: [&, |, ^, &^, <<, >>] (only work for integer values)
 
 ```go
     str := "(2+1i) + (2+2i)"
@@ -65,19 +70,20 @@ For explaining step-by-step operations, see [Explain](https://github.com/muktiha
 ```
 
 ### Boolean
+
 - Bool parses the given expr string into boolean as a result. e.g:
-    - "1 < 2" -> true
-    - "1 > 2" -> false
-    - "true || false" -> true
-    - "true && !false" -> true
+  - "1 < 2" -> true
+  - "1 > 2" -> false
+  - "true || false" -> true
+  - "true && !false" -> true
 - Arithmetic operation are supported. e.g:
-    - "1 + 2 > 1" -> true
-    - "(1 * 10) > -2" -> true
+  - "1 + 2 > 1" -> true
+  - "(1 \* 10) > -2" -> true
 - Supported operators:
-    - Comparison: [==, !=, <, <=, >, >=]
-    - Logical: [&&, ||, !]
-    - Arithmetic: [+, -, *, /, %] (% operator does not work for complex number)
-    - Bitwise: [&, |, ^, &^, <<, >>] (only work for integer values)
+  - Comparison: [==, !=, <, <=, >, >=]
+  - Logical: [&&, ||, !]
+  - Arithmetic: [+, -, *, /, %] (% operator does not work for complex number)
+  - Bitwise: [&, |, ^, &^, <<, >>] (only work for integer values)
 
 ```go
     str := "((1 < 2 && 3 > 4) || 1 == 1) && 4 < 5"
@@ -89,12 +95,13 @@ For explaining step-by-step operations, see [Explain](https://github.com/muktiha
 ```
 
 ### Complex128
+
 - Complex128 parses the given expr string into complex128 as a result. e.g:
-    - "(2+1i) + (2+2i)" -> (4+3i)
-    - "(2.2+1i) + 2" -> (4.2+1i)
-    - "2 + 2" -> (4+0i)
+  - "(2+1i) + (2+2i)" -> (4+3i)
+  - "(2.2+1i) + 2" -> (4.2+1i)
+  - "2 + 2" -> (4+0i)
 - Supported operators:
-    - Arithmetic: [+, -, *, /]
+  - Arithmetic: [+, -, *, /]
 
 ```go
     str := "(2+1i) + (2+2i)"
@@ -106,13 +113,14 @@ For explaining step-by-step operations, see [Explain](https://github.com/muktiha
 ```
 
 ### Float64
+
 - Float64 parses the given expr string into float64 as a result. e.g:
-    - "2 + 2" -> 4
-    - "2.2 + 2" -> 4.2
-    - "10 * -5 + (-5.5)" -> -55.5
-    - "10.0 % 2.6" -> 2.2
+  - "2 + 2" -> 4
+  - "2.2 + 2" -> 4.2
+  - "10 \* -5 + (-5.5)" -> -55.5
+  - "10.0 % 2.6" -> 2.2
 - Supported operators:
-    - Arithmetic: [+, -, *, /, %]
+  - Arithmetic: [+, -, *, /, %]
 
 ```go
     str := "((2 * 2) * (8 + 2) * 2) + 2.56789"
@@ -124,13 +132,14 @@ For explaining step-by-step operations, see [Explain](https://github.com/muktiha
 ```
 
 ### Int64
+
 - Int64 parses the given expr string into int64 as a result. e.g:
-    - "2 + 2" -> 4
-    - "2.2 + 2" -> 4
-    - "10 + ((-5 * -10) / -10) - 2" -> 3
+  - "2 + 2" -> 4
+  - "2.2 + 2" -> 4
+  - "10 + ((-5 \* -10) / -10) - 2" -> 3
 - Supported operators:
-    - Arithmetic: [+, -, *, /, %]
-    - Bitwise: [&, |, ^, &^, <<, >>]
+  - Arithmetic: [+, -, *, /, %]
+  - Bitwise: [&, |, ^, &^, <<, >>]
 
 ```go
     str := "((2 * 2) * (8 + 2) * 2) + 2.56789"
@@ -142,6 +151,7 @@ For explaining step-by-step operations, see [Explain](https://github.com/muktiha
 ```
 
 ### Int64Strict
+
 - Int64Strict is shorthand for Int64(str) but when x / y and y == 0, it will return ErrIntegerDividedByZero
 
 ```go
@@ -154,6 +164,7 @@ For explaining step-by-step operations, see [Explain](https://github.com/muktiha
 ```
 
 ### Int
+
 - Int is shorthand for Int64(str) with its result will be converted into int.
 
 ```go
@@ -166,4 +177,5 @@ For explaining step-by-step operations, see [Explain](https://github.com/muktiha
 ```
 
 ## License
+
 Expr is released under [Apache Licence 2.0](https://www.apache.org/licenses/LICENSE-2.0)
