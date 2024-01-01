@@ -34,25 +34,23 @@ func arithmetic(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
 	}
 
 	switch v.options.numericType {
+	case NumericTypeAuto:
+		if vx.kind == KindImag || vy.kind == KindImag {
+			calculateComplex(v, parseComplex(vx.value), parseComplex(vy.value), binaryExpr.Op, binaryExpr.OpPos)
+			return
+		}
+		calculateFloat(v, parseFloat(vx.value), parseFloat(vy.value), binaryExpr.Op)
+		return
 	case NumericTypeComplex:
-		calculateComplex(v, vx, vy, binaryExpr)
+		calculateComplex(v, parseComplex(vx.value), parseComplex(vy.value), binaryExpr.Op, binaryExpr.OpPos)
 		return
 	case NumericTypeFloat:
-		calculateFloat(v, vx, vy, binaryExpr)
+		calculateFloat(v, parseFloat(vx.value), parseFloat(vy.value), binaryExpr.Op)
 		return
 	case NumericTypeInt:
-		calculateInt(v, vx, vy, binaryExpr)
+		calculateInt(v, parseInt(vx.value), parseInt(vy.value), vy.pos, binaryExpr.Op)
 		return
 	}
-
-	// NumericTypeAuto: Auto figure out value type
-	if vx.kind == KindImag || vy.kind == KindImag {
-		calculateComplex(v, vx, vy, binaryExpr)
-		return
-	}
-
-	// calculate other types as float64
-	calculateFloat(v, vx, vy, binaryExpr)
 }
 
 func newArithmeticNonNumericError(v *Visitor, e ast.Expr) error {
@@ -64,12 +62,9 @@ func newArithmeticNonNumericError(v *Visitor, e ast.Expr) error {
 	}
 }
 
-func calculateComplex(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
+func calculateComplex(v *Visitor, x, y complex128, op token.Token, opPos token.Pos) {
 	v.kind = KindImag
-	x := parseComplex(vx.value, vx.kind)
-	y := parseComplex(vy.value, vy.kind)
-
-	switch binaryExpr.Op {
+	switch op {
 	case token.ADD:
 		v.value = x + y
 	case token.SUB:
@@ -79,22 +74,17 @@ func calculateComplex(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
 	case token.QUO:
 		v.value = x / y
 	case token.REM:
-		v.kind = KindIllegal
 		v.err = &SyntaxError{
-			Msg: "operator \"" + binaryExpr.Op.String() + "\" is not supported to do arithmetic on complex number",
-			Pos: int(binaryExpr.OpPos),
+			Msg: "operator \"" + op.String() + "\" is not supported to do arithmetic on complex number",
+			Pos: int(opPos),
 			Err: ErrArithmeticOperation,
 		}
-		return
 	}
 }
 
-func calculateFloat(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
+func calculateFloat(v *Visitor, x, y float64, op token.Token) {
 	v.kind = KindFloat
-	x := parseFloat(vx.value, vx.kind)
-	y := parseFloat(vy.value, vy.kind)
-
-	switch binaryExpr.Op {
+	switch op {
 	case token.ADD:
 		v.value = x + y
 	case token.SUB:
@@ -108,12 +98,9 @@ func calculateFloat(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
 	}
 }
 
-func calculateInt(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
+func calculateInt(v *Visitor, x, y int64, yPos int, op token.Token) {
 	v.kind = KindInt
-	x := parseInt(vx.value, vx.kind)
-	y := parseInt(vy.value, vy.kind)
-
-	switch binaryExpr.Op {
+	switch op {
 	case token.ADD:
 		v.value = x + y
 	case token.SUB:
@@ -126,10 +113,9 @@ func calculateInt(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
 				v.value = int64(0)
 				return
 			}
-			v.kind = KindIllegal
 			v.err = &SyntaxError{
 				Msg: "could not divide x with zero y, allowIntegerDividedByZero == false",
-				Pos: vy.pos,
+				Pos: yPos,
 				Err: ErrIntegerDividedByZero,
 			}
 			return
@@ -140,44 +126,38 @@ func calculateInt(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
 	}
 }
 
-func parseComplex(v interface{}, kind Kind) complex128 { // kind must be numeric
-	switch kind {
-	case KindImag:
-		v := v.(complex128)
-		return v
-	case KindFloat:
-		v := v.(float64)
-		return complex(v, 0)
-	default: // INT: 0xFF, 0b1010, 0o77, 071, 90
-		v := v.(int64)
-		return complex(float64(v), 0)
+func parseComplex(value interface{}) complex128 { // kind must be numeric
+	switch val := value.(type) {
+	case complex128:
+		return val
+	case float64:
+		return complex(val, 0)
+	case int64:
+		return complex(float64(val), 0)
 	}
+	return 0
 }
 
-func parseFloat(v interface{}, kind Kind) float64 { // kind must be numeric
-	switch kind {
-	case KindImag:
-		v := v.(complex128)
-		return real(v)
-	case KindFloat:
-		v := v.(float64)
-		return v
-	default: // INT: 0xFF, 0b1010, 0o77, 071, 90
-		v := v.(int64)
-		return float64(v)
+func parseFloat(value interface{}) float64 {
+	switch val := value.(type) {
+	case complex128:
+		return real(val)
+	case float64:
+		return val
+	case int64:
+		return float64(val)
 	}
+	return 0
 }
 
-func parseInt(v interface{}, kind Kind) int64 { // kind must be numeric
-	switch kind {
-	case KindImag:
-		v := v.(complex128)
-		return int64(real(v))
-	case KindFloat:
-		v := v.(float64)
-		return int64(v)
-	default: // INT: 0xFF, 0b1010, 0o77, 071, 90
-		v := v.(int64)
-		return v
+func parseInt(value interface{}) int64 {
+	switch val := value.(type) {
+	case complex128:
+		return int64(real(val))
+	case float64:
+		return int64(val)
+	case int64:
+		return val
 	}
+	return 0
 }

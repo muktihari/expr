@@ -25,7 +25,7 @@ import (
 )
 
 // Kind of value (value's type)
-type Kind int
+type Kind byte
 
 const (
 	KindIllegal Kind = iota
@@ -51,7 +51,7 @@ var kinds = [...]string{
 }
 
 func (k Kind) String() string {
-	if k >= 0 && k < Kind(len(kinds)) {
+	if k < Kind(len(kinds)) {
 		return kinds[k]
 	}
 	return "kind(" + strconv.Itoa(int(k)) + ")"
@@ -60,7 +60,7 @@ func (k Kind) String() string {
 type Option interface{ apply(o *options) }
 
 // NumericType determines what type of number represented in the expr string
-type NumericType int
+type NumericType byte
 
 const (
 	NumericTypeAuto    NumericType = iota // [1 * 2 = 2]       [1 * 2.5 = 2.5]
@@ -90,12 +90,11 @@ var _ ast.Visitor = &Visitor{}
 
 // Visitor satisfies ast.Visitor interface.
 type Visitor struct {
+	value   interface{}
+	err     error
+	pos     int
+	kind    Kind    // used to reduce the need to do type assertion on numeric operation.
 	options options // Visitor's Option
-
-	kind  Kind
-	value interface{}
-	pos   int
-	err   error
 }
 
 func defaultOptions() *options {
@@ -176,7 +175,8 @@ func (v *Visitor) visitUnary(unaryExpr *ast.UnaryExpr) ast.Visitor {
 		v.kind = vx.kind
 		switch unaryExpr.Op {
 		case token.NOT: // negation: !true -> false, !false -> true
-			if vx.kind != KindBoolean {
+			res, ok := vx.value.(bool)
+			if !ok {
 				s := conv.FormatExpr(unaryExpr.X)
 				v.err = &SyntaxError{
 					Msg: "could not do negation: result of \"" + s + "\" is \"" + fmt.Sprintf("%v", vx.value) + "\" not a boolean",
@@ -185,7 +185,6 @@ func (v *Visitor) visitUnary(unaryExpr *ast.UnaryExpr) ast.Visitor {
 				}
 				return nil
 			}
-			res := vx.value.(bool)
 			v.value = !res
 		case token.ADD:
 			v.value = vx.value
@@ -259,8 +258,8 @@ func (v *Visitor) visitBasicLit(basicLit *ast.BasicLit) ast.Visitor {
 	case token.CHAR:
 		fallthrough // treat as string
 	case token.STRING:
-		v.value = strings.TrimFunc(basicLit.Value, func(r rune) bool { return r == '\'' || r == '`' || r == '"' })
 		v.kind = KindString
+		v.value = strings.TrimFunc(basicLit.Value, func(r rune) bool { return r == '\'' || r == '`' || r == '"' })
 	}
 	return nil
 }
@@ -271,7 +270,6 @@ func (v *Visitor) visitIndent(indent *ast.Ident) ast.Visitor {
 	if err != nil {
 		return nil
 	}
-
 	v.kind, v.value = KindBoolean, vb
 	return nil
 }

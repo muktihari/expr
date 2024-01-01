@@ -1,6 +1,6 @@
 # Explain
 
-Explain is a standalone package aimed to explain step by step operation in expr.
+Explain is an EXPERIMENTAL and a standalone package aimed to explain step by step operation in expr.
 
 ```go
     s := "1 + 2 + 3"

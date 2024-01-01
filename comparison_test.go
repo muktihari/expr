@@ -89,21 +89,66 @@ func TestComparison(t *testing.T) {
 			expectedValues: []interface{}{true, false, false, true, false, true},
 			expectedErrs:   []error{nil, nil, nil, nil, nil, nil},
 		},
+		// compare imag to float
+		{
+			v:              &Visitor{},
+			vx:             &Visitor{value: (2 + 0i), kind: KindImag},
+			ops:            []token.Token{token.EQL, token.NEQ},
+			vy:             &Visitor{value: 2.0, kind: KindFloat},
+			expectedValues: []interface{}{true, false},
+			expectedErrs:   []error{nil, nil},
+		},
+		// compare imag to int
+		{
+			v:              &Visitor{},
+			vx:             &Visitor{value: (2 + 0i), kind: KindImag},
+			ops:            []token.Token{token.EQL, token.NEQ},
+			vy:             &Visitor{value: int64(2), kind: KindInt},
+			expectedValues: []interface{}{true, false},
+			expectedErrs:   []error{nil, nil},
+		},
+		// compare float to imag
+		{
+			v:              &Visitor{},
+			vx:             &Visitor{value: 2.0, kind: KindInt},
+			ops:            []token.Token{token.EQL, token.NEQ},
+			vy:             &Visitor{value: (2 + 0i), kind: KindImag},
+			expectedValues: []interface{}{true, false},
+			expectedErrs:   []error{nil, nil},
+		},
+		// compare int to complex
+		{
+			v:              &Visitor{},
+			vx:             &Visitor{value: int64(2), kind: KindInt},
+			ops:            []token.Token{token.EQL, token.NEQ},
+			vy:             &Visitor{value: 2 + 0i, kind: KindImag},
+			expectedValues: []interface{}{true, false},
+			expectedErrs:   []error{nil, nil},
+		},
+		// compare int to float64
+		{
+			v:              &Visitor{},
+			vx:             &Visitor{value: int64(2), kind: KindInt},
+			ops:            []token.Token{token.EQL, token.NEQ},
+			vy:             &Visitor{value: 2.0, kind: KindFloat},
+			expectedValues: []interface{}{true, false},
+			expectedErrs:   []error{nil, nil},
+		},
+		// compare int to boolean
+		{
+			v:              &Visitor{},
+			vx:             &Visitor{value: int64(10), kind: KindInt},
+			ops:            []token.Token{token.EQL, token.NEQ},
+			vy:             &Visitor{value: true, kind: KindBoolean},
+			expectedValues: []interface{}{nil, nil},
+			expectedErrs:   []error{ErrComparisonOperation, ErrComparisonOperation},
+		},
 		// compare boolean to int
 		{
 			v:              &Visitor{},
 			vx:             &Visitor{value: true, kind: KindBoolean},
 			ops:            []token.Token{token.EQL, token.NEQ},
 			vy:             &Visitor{value: int64(10), kind: KindInt},
-			expectedValues: []interface{}{nil, nil},
-			expectedErrs:   []error{ErrComparisonOperation, ErrComparisonOperation},
-		},
-		// compareInt to boolean
-		{
-			v:              &Visitor{},
-			vx:             &Visitor{value: int64(10), kind: KindInt},
-			ops:            []token.Token{token.EQL, token.NEQ},
-			vy:             &Visitor{value: true, kind: KindBoolean},
 			expectedValues: []interface{}{nil, nil},
 			expectedErrs:   []error{ErrComparisonOperation, ErrComparisonOperation},
 		},

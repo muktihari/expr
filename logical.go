@@ -26,7 +26,6 @@ func logical(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
 		v.err = newLogicalNonBooleanError(vx, binaryExpr.X)
 		return
 	}
-
 	if vy.kind != KindBoolean {
 		v.err = newLogicalNonBooleanError(vy, binaryExpr.Y)
 		return

@@ -31,24 +31,24 @@ func TestExplain(t *testing.T) {
 		{
 			str: "1 + 2",
 			explains: []explain.Step{
-				{[]string{"1 + 2"}, "3"},
+				{EquivalentForms: []string{"1 + 2"}, Result: "3"},
 			},
 		},
 		{
 			str: "1 + 2 + 3",
 			explains: []explain.Step{
-				{[]string{"1 + 2"}, "3"},
-				{[]string{"(1 + 2) + 3", "3 + 3"}, "6"},
+				{EquivalentForms: []string{"1 + 2"}, Result: "3"},
+				{EquivalentForms: []string{"(1 + 2) + 3", "3 + 3"}, Result: "6"},
 			},
 		},
 		{
 			str: "!true || ((5 > 3) && 1 == 1)",
 			explains: []explain.Step{
-				{[]string{"!true"}, "false"},
-				{[]string{"5 > 3"}, "true"},
-				{[]string{"1 == 1"}, "true"},
-				{[]string{"(5 > 3) && (1 == 1)", "true && true"}, "true"},
-				{[]string{"false || (true && true)", "false || true"}, "true"},
+				{EquivalentForms: []string{"!true"}, Result: "false"},
+				{EquivalentForms: []string{"5 > 3"}, Result: "true"},
+				{EquivalentForms: []string{"1 == 1"}, Result: "true"},
+				{EquivalentForms: []string{"(5 > 3) && (1 == 1)", "true && true"}, Result: "true"},
+				{EquivalentForms: []string{"false || (true && true)", "false || true"}, Result: "true"},
 			},
 		},
 		{

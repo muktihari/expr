@@ -22,6 +22,7 @@ import (
 // One step can have multiple equivalent forms, starts with original form until the final form.
 type Step struct {
 	EquivalentForms []string
+	Explaination    string
 	Result          string
 }
 
@@ -37,17 +38,18 @@ func Explain(s string) ([]Step, error) {
 	if err := v.err; err != nil {
 		return nil, err
 	}
-
 	// sanitize results
-	explains := make([]Step, len(v.transforms))
-	for i, transform := range v.transforms {
-		explains[i] = Step{
+	explains := make([]Step, 0, len(v.transforms))
+	for _, transform := range v.transforms {
+		step := Step{
 			EquivalentForms: []string{transform.Segmented},
+			Explaination:    transform.Explaination,
 			Result:          transform.Evaluated,
 		}
 		if transform.Segmented != transform.EquivalentForm {
-			explains[i].EquivalentForms = append(explains[i].EquivalentForms, transform.EquivalentForm)
+			step.EquivalentForms = append(step.EquivalentForms, transform.EquivalentForm)
 		}
+		explains = append(explains, step)
 	}
 
 	return explains, nil

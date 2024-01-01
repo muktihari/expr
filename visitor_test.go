@@ -176,8 +176,7 @@ func TestKindString(t *testing.T) {
 		kind     expr.Kind
 		expected string
 	}{
-		{kind: -100, expected: "kind(-100)"},
-		{kind: 1000, expected: "kind(1000)"},
+		{kind: 255, expected: "kind(255)"},
 	}
 
 	for _, tc := range tt {

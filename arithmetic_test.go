@@ -122,7 +122,7 @@ func TestArithmetic(t *testing.T) {
 			be := &ast.BinaryExpr{Op: tc.op}
 			arithmetic(tc.v, tc.vx, tc.vy, be)
 			if !errors.Is(tc.v.err, tc.expectedErr) {
-				t.Fatalf("expected err: %s, got: %s", tc.expectedErr, tc.v.err)
+				t.Fatalf("expected err: %v, got: %v", tc.expectedErr, tc.v.err)
 			}
 			if tc.v.value != tc.expectedValue {
 				t.Fatalf("expected value: %v (%T), got: %v (%T)", tc.expectedValue, tc.expectedValue,
@@ -189,9 +189,9 @@ func TestCalculateComplex(t *testing.T) {
 				name := fmt.Sprintf("%v%s%v", tc.vx.value, op, tc.vy.value)
 				t.Run(name, func(t *testing.T) {
 					be := &ast.BinaryExpr{Op: op}
-					calculateComplex(tc.v, tc.vx, tc.vy, be)
+					calculateComplex(tc.v, parseComplex(tc.vx.value), parseComplex(tc.vy.value), be.Op, be.OpPos)
 					if !errors.Is(tc.v.err, tc.expectedErrs[i]) {
-						t.Fatalf("expected err: %s, got: %s", tc.expectedErrs[i], tc.v.err)
+						t.Fatalf("expected err: %v, got: %v", tc.expectedErrs[i], tc.v.err)
 					}
 					if tc.v.value != tc.expectedValues[i] {
 						t.Fatalf("expected value: %v (%T), got: % (%T)", tc.expectedValues[i], tc.expectedValues[i],
@@ -252,9 +252,9 @@ func TestCalculateFloat(t *testing.T) {
 				name := fmt.Sprintf("%v%s%v", tc.vx.value, op, tc.vy.value)
 				t.Run(name, func(t *testing.T) {
 					be := &ast.BinaryExpr{Op: op}
-					calculateFloat(tc.v, tc.vx, tc.vy, be)
+					calculateFloat(tc.v, parseFloat(tc.vx.value), parseFloat(tc.vy.value), be.Op)
 					if !errors.Is(tc.v.err, tc.expectedErrs[i]) {
-						t.Fatalf("expected err: %s, got: %s", tc.expectedErrs[i], tc.v.err)
+						t.Fatalf("expected err: %v, got: %v", tc.expectedErrs[i], tc.v.err)
 					}
 					if tc.v.value != tc.expectedValues[i] {
 						t.Fatalf("expected value: %v (%T), got: %s (%T)", tc.expectedValues[i], tc.expectedValues[i],
@@ -336,9 +336,9 @@ func TestCalculateInt(t *testing.T) {
 				name := fmt.Sprintf("%v%s%v", tc.vx.value, op, tc.vy.value)
 				t.Run(name, func(t *testing.T) {
 					be := &ast.BinaryExpr{Op: op}
-					calculateInt(tc.v, tc.vx, tc.vy, be)
+					calculateInt(tc.v, parseInt(tc.vx.value), parseInt(tc.vy.value), tc.vy.pos, be.Op)
 					if !errors.Is(tc.v.err, tc.expectedErrs[i]) {
-						t.Fatalf("expected err: %s, got: %s", tc.expectedErrs[i], tc.v.err)
+						t.Fatalf("expected err: %v, got: %v", tc.expectedErrs[i], tc.v.err)
 					}
 					if tc.v.value != tc.expectedValues[i] {
 						t.Fatalf("expected value: %v (%T), got: %v (%T)", tc.expectedValues[i], tc.expectedValues[i],
@@ -347,5 +347,20 @@ func TestCalculateInt(t *testing.T) {
 				})
 			}
 		})
+	}
+}
+
+func TestParseInvalidValue(t *testing.T) {
+	i64 := parseInt("invalid")
+	if i64 != 0 {
+		t.Fatalf("expected 0, got: %v", i64)
+	}
+	f64 := parseFloat(true)
+	if f64 != 0 {
+		t.Fatalf("expected 0, got: %v", f64)
+	}
+	c128 := parseComplex(false)
+	if c128 != 0 {
+		t.Fatalf("expected 0, got: %v", c128)
 	}
 }
