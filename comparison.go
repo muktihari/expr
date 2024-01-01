@@ -21,76 +21,91 @@ import (
 	"github.com/muktihari/expr/internal/conv"
 )
 
+// comparison compares visitor X and visitor Y values. Numeric hierarchy will apply: complex128 > float64 > int64.
 func comparison(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
 	v.kind = KindBoolean
-	if vx.kind == KindBoolean && vy.kind == KindBoolean {
-		compareMustBoolean(v, vx, vy, binaryExpr)
-		return
+	switch x := vx.value.(type) {
+	case complex128:
+		// Treat y as complex number since x is a complex number.
+		switch y := vy.value.(type) {
+		case complex128:
+			compareComplex(v, x, y, binaryExpr.Op, binaryExpr.OpPos)
+			return
+		case float64:
+			compareComplex(v, x, complex(y, 0), binaryExpr.Op, binaryExpr.OpPos)
+			return
+		case int64:
+			compareComplex(v, x, complex(float64(y), 0), binaryExpr.Op, binaryExpr.OpPos)
+			return
+		}
+	case float64:
+		switch y := vy.value.(type) {
+		case complex128: // Treat x as complex number since y is a complex number.
+			compareComplex(v, complex(x, 0), y, binaryExpr.Op, binaryExpr.OpPos)
+			return
+		case float64:
+			compareFloat(v, x, y, binaryExpr.Op)
+			return
+		case int64: // Treat y as float64 since x is a float64.
+			compareFloat(v, x, float64(y), binaryExpr.Op)
+			return
+		}
+	case int64:
+		// Treat x as y's type, since int64 hierarchy is at the bottom.
+		switch y := vy.value.(type) {
+		case complex128:
+			compareComplex(v, complex(float64(x), 0), y, binaryExpr.Op, binaryExpr.OpPos)
+			return
+		case float64:
+			compareFloat(v, float64(x), y, binaryExpr.Op)
+			return
+		case int64:
+			compareInt(v, x, y, binaryExpr)
+			return
+		}
+	case bool:
+		y, ok := vy.value.(bool)
+		if ok {
+			compareBoolean(v, x, y, binaryExpr.Op, binaryExpr.OpPos)
+			return
+		}
+	case string:
+		y, ok := vy.value.(string)
+		if ok {
+			compareString(v, x, y, binaryExpr.Op)
+			return
+		}
 	}
-	if vx.kind == KindString && vy.kind == KindString {
-		compareMustString(v, vx, vy, binaryExpr)
-		return
-	}
-
-	// numeric can be compare one another e.g. 0.4 < 1 -> true
-	// numeric guards:
-	if vx.kind <= numeric_beg || vx.kind >= numeric_end {
-		v.err = newComparisonNonNumericError(vx, binaryExpr.X)
-		return
-	}
-	if vy.kind <= numeric_beg || vy.kind >= numeric_end {
-		v.err = newComparisonNonNumericError(vy, binaryExpr.Y)
-		return
-	}
-
-	if vx.kind == KindImag || vy.kind == KindImag {
-		compareComplex(v, vx, vy, binaryExpr)
-		return
-	}
-	if vx.kind == KindFloat || vy.kind == KindFloat {
-		compareFloat(v, vx, vy, binaryExpr)
-		return
-	}
-	if vx.kind == KindInt || vy.kind == KindInt {
-		compareInt(v, vx, vy, binaryExpr)
-		return
-	}
+	v.kind = KindIllegal
+	v.err = newComparisonNonComparableError(v, binaryExpr) // Catch non-comparable values.
 }
 
-func newComparisonNonNumericError(v *Visitor, e ast.Expr) error {
-	s := conv.FormatExpr(e)
+func newComparisonNonComparableError(v *Visitor, e ast.Expr) error {
 	return &SyntaxError{
-		Msg: "result of \"" + s + "\" is \"" + fmt.Sprintf("%v", v.value) + "\" which is not a number",
+		Msg: fmt.Sprintf("expression %q is not comparable", conv.FormatExpr(e)),
 		Pos: v.pos,
 		Err: ErrComparisonOperation,
 	}
 }
 
-func compareMustBoolean(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
-	x := vx.value.(bool)
-	y := vy.value.(bool)
-
-	switch binaryExpr.Op {
+func compareBoolean(v *Visitor, x, y bool, op token.Token, opPos token.Pos) {
+	switch op {
 	case token.EQL:
 		v.value = x == y
 	case token.NEQ:
 		v.value = x != y
 	default:
-		v.kind = KindIllegal
 		v.err = &SyntaxError{
-			Msg: "operator \"" + binaryExpr.Op.String() + "\" is not supported for comparing boolean values",
-			Pos: int(binaryExpr.OpPos),
+			Msg: "operator \"" + op.String() + "\" is not supported for comparing boolean values",
+			Pos: int(opPos),
 			Err: ErrUnsupportedOperator,
 		}
 		return
 	}
 }
 
-func compareMustString(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
-	x := vx.value.(string)
-	y := vy.value.(string)
-
-	switch binaryExpr.Op {
+func compareString(v *Visitor, x, y string, op token.Token) {
+	switch op {
 	case token.EQL:
 		v.value = x == y
 	case token.NEQ:
@@ -107,31 +122,24 @@ func compareMustString(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
 }
 
 // IEEE 754 says that only NaNs satisfy f != f.
-func compareComplex(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
-	x := parseComplex(vx.value, vx.kind)
-	y := parseComplex(vy.value, vy.kind)
-
-	switch binaryExpr.Op {
+func compareComplex(v *Visitor, x, y complex128, op token.Token, opPos token.Pos) {
+	switch op {
 	case token.EQL:
 		v.value = x == y
 	case token.NEQ:
 		v.value = x != y
 	default:
-		v.kind = KindIllegal
 		v.err = &SyntaxError{
-			Msg: "operator \"" + binaryExpr.Op.String() + "\" is not supported for comparing complex numbers",
-			Pos: int(binaryExpr.OpPos),
+			Msg: "operator \"" + op.String() + "\" is not supported for comparing complex numbers",
+			Pos: int(opPos),
 			Err: ErrUnsupportedOperator,
 		}
 		return
 	}
 }
 
-func compareFloat(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
-	x := parseFloat(vx.value, vx.kind)
-	y := parseFloat(vy.value, vy.kind)
-
-	switch binaryExpr.Op {
+func compareFloat(v *Visitor, x, y float64, op token.Token) {
+	switch op {
 	case token.EQL:
 		v.value = x == y
 	case token.NEQ:
@@ -147,10 +155,7 @@ func compareFloat(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
 	}
 }
 
-func compareInt(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
-	x := parseInt(vx.value, vx.kind)
-	y := parseInt(vy.value, vy.kind)
-
+func compareInt(v *Visitor, x, y int64, binaryExpr *ast.BinaryExpr) {
 	switch binaryExpr.Op {
 	case token.EQL:
 		v.value = x == y

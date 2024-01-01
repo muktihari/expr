@@ -49,26 +49,14 @@ func Any(str string) (interface{}, error) {
 		return nil, err
 	}
 
-	switch v.Kind() {
-	case KindInt:
-		v := v.ValueAny().(int64)
-		return v, nil
-	case KindFloat:
-		v := v.ValueAny().(float64)
-		vInt := int64(v)
-		if v == float64(vInt) {
-			return vInt, nil
+	switch val := v.value.(type) {
+	case float64:
+		if val == float64(int64(val)) {
+			return int64(val), nil
 		}
-		return v, nil
-	case KindImag:
-		v := v.ValueAny().(complex128)
-		return v, nil
-	case KindBoolean:
-		v := v.ValueAny().(bool)
-		return v, nil
-	default: // must be string
-		v := v.ValueAny().(string)
-		return v, nil
+		return val, nil
+	default:
+		return val, nil
 	}
 }
 
@@ -100,9 +88,7 @@ func Bool(str string) (bool, error) {
 		return false, err
 	}
 
-	switch v.kind {
-	case KindBoolean:
-		val := v.ValueAny().(bool)
+	if val, ok := v.value.(bool); ok {
 		return val, nil
 	}
 
@@ -129,16 +115,13 @@ func Complex128(str string) (complex128, error) {
 		return 0, err
 	}
 
-	switch v.Kind() {
-	case KindImag:
-		v := v.ValueAny().(complex128)
-		return v, nil
-	case KindInt:
-		v := v.ValueAny().(int64)
-		return complex(float64(v), 0), nil
-	case KindFloat:
-		v := v.ValueAny().(float64)
-		return complex(v, 0), nil
+	switch val := v.value.(type) {
+	case complex128:
+		return val, nil
+	case float64:
+		return complex(val, 0), nil
+	case int64:
+		return complex(float64(val), 0), nil
 	}
 
 	return 0, ErrValueTypeMismatch
@@ -165,13 +148,13 @@ func Float64(str string) (float64, error) {
 		return 0, err
 	}
 
-	switch v.Kind() {
-	case KindInt:
-		v := v.ValueAny().(int64)
-		return float64(v), nil
-	case KindFloat:
-		v := v.ValueAny().(float64)
-		return v, nil
+	switch val := v.value.(type) {
+	case complex128:
+		return real(val), nil
+	case float64:
+		return val, nil
+	case int64:
+		return float64(val), nil
 	}
 
 	return 0, ErrValueTypeMismatch
@@ -219,13 +202,13 @@ func parseStringExprIntoInt64(str string, allowIntegerDividedByZero bool) (int64
 		return 0, err
 	}
 
-	switch v.Kind() {
-	case KindInt:
-		v := v.ValueAny().(int64)
-		return v, nil
-	case KindFloat:
-		v := v.ValueAny().(float64)
-		return int64(v), nil
+	switch val := v.value.(type) {
+	case complex128:
+		return int64(real(val)), nil
+	case float64:
+		return int64(val), nil
+	case int64:
+		return val, nil
 	}
 
 	return 0, ErrValueTypeMismatch

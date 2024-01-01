@@ -99,6 +99,42 @@ func TestVisit(t *testing.T) {
 			str: "1.2 & 1",
 			err: expr.ErrBitwiseOperation,
 		},
+		{
+			str: "4 << 10",
+			transforms: []Transform{
+				{Segmented: "4 << 10", EquivalentForm: "4 << 10", Evaluated: "4096"},
+			},
+		},
+		{
+			str: "4 >> 10",
+			transforms: []Transform{
+				{Segmented: "4 >> 10", EquivalentForm: "4 >> 10", Evaluated: "0"},
+			},
+		},
+		{
+			str: "4 & 10",
+			transforms: []Transform{
+				{Segmented: "4 & 10", EquivalentForm: "4 & 10", Evaluated: "0"},
+			},
+		},
+		{
+			str: "4 | 1000000000",
+			transforms: []Transform{
+				{Segmented: "4 | 1000000000", EquivalentForm: "4 | 1000000000", Evaluated: "1000000004"},
+			},
+		},
+		{
+			str: "4 ^ 10",
+			transforms: []Transform{
+				{Segmented: "4 ^ 10", EquivalentForm: "4 ^ 10", Evaluated: "14"},
+			},
+		},
+		{
+			str: "4 &^ 10",
+			transforms: []Transform{
+				{Segmented: "4 &^ 10", EquivalentForm: "4 &^ 10", Evaluated: "4"},
+			},
+		},
 	}
 
 	// test nil node
@@ -120,7 +156,14 @@ func TestVisit(t *testing.T) {
 				return
 			}
 
-			if diff := cmp.Diff(v.Value(), tc.transforms); diff != "" {
+			transforms := v.Value()
+
+			// Ignore Explaination
+			for i := range transforms {
+				transforms[i].Explaination = ""
+			}
+
+			if diff := cmp.Diff(transforms, tc.transforms); diff != "" {
 				t.Fatal(diff)
 			}
 		})

@@ -16,6 +16,9 @@ package explain
 import (
 	"fmt"
 	"go/ast"
+	"go/token"
+	"strconv"
+	"strings"
 
 	"github.com/muktihari/expr"
 	"github.com/muktihari/expr/internal/conv"
@@ -36,6 +39,7 @@ const (
 type Transform struct {
 	Segmented      string
 	EquivalentForm string
+	Explaination   string
 	Evaluated      string
 }
 
@@ -140,13 +144,24 @@ func (v *Visitor) Visit(node ast.Node) ast.Visitor {
 		evy := newExprVisitor()
 		ast.Walk(evy, d.Y)
 
-		v.value = fmt.Sprintf("%s %s %s", evx.Value(), d.Op, evy.Value())
+		xValue := evx.Value()
+		yValue := evy.Value()
 
-		v.transforms = append(v.transforms, Transform{
+		v.value = fmt.Sprintf("%s %s %s", xValue, d.Op, yValue)
+
+		transform := Transform{
 			Segmented:      fmt.Sprintf("%s %s %s", vx.value, d.Op, vy.value),
 			EquivalentForm: v.value,
 			Evaluated:      ev.Value(),
-		})
+		}
+
+		// Special case for explaining bitwise
+		switch d.Op {
+		case token.AND, token.OR, token.XOR, token.AND_NOT, token.SHL, token.SHR:
+			explainBitwise(&transform, xValue, yValue, d.Op)
+		}
+
+		v.transforms = append(v.transforms, transform)
 	case *ast.BasicLit:
 		v.value, v.exprType = d.Value, basicLit
 	case *ast.Ident:
@@ -161,4 +176,59 @@ func newExprVisitor() *expr.Visitor {
 		expr.WithNumericType(expr.NumericTypeAuto),
 		expr.WithAllowIntegerDividedByZero(true),
 	)
+}
+
+var operatorStringMap = map[token.Token]string{
+	token.AND:     "AND",
+	token.OR:      "OR",
+	token.XOR:     "XOR",
+	token.AND_NOT: "AND NOT",
+}
+
+func explainBitwise(transform *Transform, xValue, yValue string, op token.Token) {
+	fx, _ := strconv.ParseFloat(xValue, 64)
+	fy, _ := strconv.ParseFloat(yValue, 64)
+
+	var result int64
+	switch op {
+	case token.AND:
+		result = int64(fx) & int64(fy)
+	case token.OR:
+		result = int64(fx) | int64(fy)
+	case token.XOR:
+		result = int64(fx) ^ int64(fy)
+	case token.AND_NOT:
+		result = int64(fx) &^ int64(fy)
+	}
+
+	size := len(fmt.Sprintf("%.8b", int64(fx)))
+	sizeY := len(fmt.Sprintf("%.8b", int64(fy)))
+	if sizeY > size {
+		size = sizeY
+	}
+	formatter := fmt.Sprintf("0b%%.%db", size)
+
+	xbits := fmt.Sprintf(formatter, int64(fx))
+	ybits := fmt.Sprintf(formatter, int64(fy))
+
+	if op != token.SHL && op != token.SHR {
+		transform.Explaination = fmt.Sprintf("%s\n%s\n%s %s\n%s",
+			xbits, ybits,
+			strings.Repeat("-", (size*2)-(size*2/10)), operatorStringMap[op],
+			fmt.Sprintf(formatter, result))
+		return
+	}
+
+	var shiftDirection string
+	switch op {
+	case token.SHL:
+		shiftDirection = "left"
+		result = int64(fx) << int64(fy)
+	case token.SHR:
+		shiftDirection = "right"
+		result = int64(fx) >> int64(fy)
+	}
+
+	transform.Explaination = fmt.Sprintf("%s %s-shifted by %d = %s",
+		xbits, shiftDirection, int64(fy), fmt.Sprintf(formatter, result))
 }

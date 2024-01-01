@@ -222,6 +222,7 @@ func TestFloat64(t *testing.T) {
 		Eq  float64
 		Err error
 	}{
+		{In: "1i", Eq: 0},
 		{In: "2", Eq: 2},
 		{In: "4 == 2", Err: expr.ErrValueTypeMismatch},
 		{In: "1 + 1 + (4 == 2)", Err: expr.ErrArithmeticOperation},
@@ -255,6 +256,7 @@ func TestFloat64(t *testing.T) {
 		{In: "10.0 % 2.6", Eq: 2.2},
 		{In: "12.5 | 4.3", Err: expr.ErrBitwiseOperation},
 		{In: "12 | 4", Err: expr.ErrBitwiseOperation},
+		{In: "(2 + 2i) + (2 + 2i)", Eq: 4},
 	}
 
 	for _, tc := range tt {
@@ -279,6 +281,7 @@ func TestInt(t *testing.T) {
 		Eq  int
 		Err error
 	}{
+		{In: "1i", Eq: 0},
 		{In: "4.23", Eq: 4},
 		{In: "4 == 2", Err: expr.ErrValueTypeMismatch},
 		{In: "1 + 1 + (4 == 2)", Err: expr.ErrArithmeticOperation},

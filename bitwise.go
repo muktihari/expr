@@ -22,38 +22,40 @@ import (
 )
 
 func bitwise(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
-	// No matters what options, having bolean here is invalid.
-	if vx.kind == KindBoolean {
+	// numeric guards:
+	if vx.kind <= numeric_beg || vx.kind >= numeric_end {
 		v.err = newBitwiseNonIntegerError(vx, binaryExpr.X)
 		return
 	}
-	if vy.kind == KindBoolean {
-		v.err = newBitwiseNonIntegerError(vx, binaryExpr.Y)
-		return
-	}
-
-	switch v.options.numericType {
-	case NumericTypeAuto:
-		// NumericTypeAuto: check whether both values are represent integers
-		x := parseFloat(vx.value, vx.kind)
-		y := parseFloat(vy.value, vy.kind)
-
-		if x != float64(int64(x)) {
-			v.err = newBitwiseNonIntegerError(vx, binaryExpr.X)
-			return
-		}
-
-		if y != float64(int64(y)) {
-			v.err = newBitwiseNonIntegerError(vy, binaryExpr.Y)
-			return
-		}
-	case NumericTypeFloat, NumericTypeComplex:
+	if vy.kind <= numeric_beg || vy.kind >= numeric_end {
 		v.err = newBitwiseNonIntegerError(vy, binaryExpr.Y)
 		return
 	}
 
-	x := parseInt(vx.value, vx.kind)
-	y := parseInt(vy.value, vy.kind)
+	var x, y int64
+	switch v.options.numericType {
+	case NumericTypeFloat:
+		v.err = newBitwiseNonIntegerError(v, binaryExpr)
+		return
+	case NumericTypeComplex:
+		v.err = newBitwiseNonIntegerError(v, binaryExpr)
+		return
+	case NumericTypeInt:
+		x = parseInt(vx.value)
+		y = parseInt(vy.value)
+	case NumericTypeAuto:
+		var ok bool
+		x, ok = convertToInt64(vx.value)
+		if !ok {
+			v.err = newBitwiseNonIntegerError(vx, binaryExpr.X)
+			return
+		}
+		y, ok = convertToInt64(vy.value)
+		if !ok {
+			v.err = newBitwiseNonIntegerError(vy, binaryExpr.Y)
+			return
+		}
+	}
 
 	v.kind = KindInt
 	switch binaryExpr.Op {
@@ -79,4 +81,16 @@ func newBitwiseNonIntegerError(v *Visitor, e ast.Expr) error {
 		Pos: int(e.Pos()),
 		Err: ErrBitwiseOperation,
 	}
+}
+
+func convertToInt64(value interface{}) (int64, bool) {
+	switch val := value.(type) {
+	case float64:
+		if float64(int64(val)) == val { // only if it doesn't have decimal.
+			return int64(val), true
+		}
+	case int64:
+		return val, true
+	}
+	return 0, false
 }
