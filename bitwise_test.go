@@ -30,99 +30,99 @@ func TestBitwise(t *testing.T) {
 	}{
 		{
 			v:           &Visitor{options: options{numericType: NumericTypeFloat}},
-			vx:          &Visitor{value: int64(0b1000), kind: KindInt},
-			vy:          &Visitor{value: int64(0b1001), kind: KindInt},
+			vx:          &Visitor{value: int64Value(0b1000)},
+			vy:          &Visitor{value: int64Value(0b1001)},
 			op:          token.AND, // "&"
 			expectedErr: ErrBitwiseOperation,
 		},
 		{
 			v:           &Visitor{},
-			vx:          &Visitor{value: float64(2.0), kind: KindFloat},
-			vy:          &Visitor{value: int64(0b1001), kind: KindInt},
+			vx:          &Visitor{value: float64Value(2.0)},
+			vy:          &Visitor{value: int64Value(0b1001)},
 			op:          token.AND, // "&"
 			expectedErr: nil,
 		},
 		{
 			v:           &Visitor{},
-			vx:          &Visitor{value: float64(2.2), kind: KindFloat},
-			vy:          &Visitor{value: int64(0b1001), kind: KindInt},
+			vx:          &Visitor{value: float64Value(2.2)},
+			vy:          &Visitor{value: int64Value(0b1001)},
 			op:          token.AND, // "&"
 			expectedErr: ErrBitwiseOperation,
 		},
 		{
 			v:           &Visitor{},
-			vx:          &Visitor{value: int64(0b1001), kind: KindInt},
-			vy:          &Visitor{value: float64(2.0), kind: KindFloat},
+			vx:          &Visitor{value: int64Value(0b1001)},
+			vy:          &Visitor{value: float64Value(2.0)},
 			op:          token.AND, // "&"
 			expectedErr: nil,
 		},
 		{
 			v:           &Visitor{},
-			vx:          &Visitor{value: int64(0b1001), kind: KindInt},
-			vy:          &Visitor{value: float64(2.2), kind: KindFloat},
+			vx:          &Visitor{value: int64Value(0b1001)},
+			vy:          &Visitor{value: float64Value(2.2)},
 			op:          token.AND, // "&"
 			expectedErr: ErrBitwiseOperation,
 		},
 		{
 			v:             &Visitor{},
-			vx:            &Visitor{value: int64(0b1000), kind: KindInt},
-			vy:            &Visitor{value: int64(0b1001), kind: KindInt},
+			vx:            &Visitor{value: int64Value(0b1000)},
+			vy:            &Visitor{value: int64Value(0b1001)},
 			op:            token.AND, // "&"
 			expectedValue: int64(0b1000),
 		},
 		{
 			v:             &Visitor{},
-			vx:            &Visitor{value: int64(0b1000), kind: KindInt},
-			vy:            &Visitor{value: int64(0b0001), kind: KindInt},
+			vx:            &Visitor{value: int64Value(0b1000)},
+			vy:            &Visitor{value: int64Value(0b0001)},
 			op:            token.OR, // "|"
 			expectedValue: int64(0b1001),
 		},
 		{
 			v:             &Visitor{},
-			vx:            &Visitor{value: int64(0b1000), kind: KindInt},
-			vy:            &Visitor{value: int64(0b1001), kind: KindInt},
+			vx:            &Visitor{value: int64Value(0b1000)},
+			vy:            &Visitor{value: int64Value(0b1001)},
 			op:            token.XOR, // "^"
 			expectedValue: int64(0b0001),
 		},
 		{
 			v:             &Visitor{},
-			vx:            &Visitor{value: int64(0b1100), kind: KindInt},
-			vy:            &Visitor{value: int64(0b0101), kind: KindInt},
+			vx:            &Visitor{value: int64Value(0b1100)},
+			vy:            &Visitor{value: int64Value(0b0101)},
 			op:            token.AND_NOT, // "&^"
 			expectedValue: int64(0b1000),
 		},
 		{
 			v:             &Visitor{},
-			vx:            &Visitor{value: int64(0b1001), kind: KindInt},
-			vy:            &Visitor{value: int64(0b0001), kind: KindInt},
+			vx:            &Visitor{value: int64Value(0b1001)},
+			vy:            &Visitor{value: int64Value(0b0001)},
 			op:            token.SHL, // "<<"
 			expectedValue: int64(0b10010),
 		},
 		{
 			v:             &Visitor{},
-			vx:            &Visitor{value: int64(0b1000), kind: KindInt},
-			vy:            &Visitor{value: int64(0b0001), kind: KindInt},
+			vx:            &Visitor{value: int64Value(0b1000)},
+			vy:            &Visitor{value: int64Value(0b0001)},
 			op:            token.SHR, // ">>"
 			expectedValue: int64(0b0100),
 		},
 		{
 			v:             &Visitor{},
-			vx:            &Visitor{value: float64(4.0), kind: KindFloat},
-			vy:            &Visitor{value: int64(10), kind: KindInt},
+			vx:            &Visitor{value: float64Value(4.0)},
+			vy:            &Visitor{value: int64Value(10)},
 			op:            token.SHL, // "<<"
 			expectedValue: int64(0b1000000000000),
 		},
 		{
 			v:           &Visitor{},
-			vx:          &Visitor{value: true, kind: KindBoolean},
-			vy:          &Visitor{value: int64(10), kind: KindInt},
+			vx:          &Visitor{value: boolValue(true)},
+			vy:          &Visitor{value: int64Value(10)},
 			op:          token.SHL, // "<<"
 			expectedErr: ErrBitwiseOperation,
 		},
 		{
 			v:           &Visitor{},
-			vx:          &Visitor{value: int64(10), kind: KindInt},
-			vy:          &Visitor{value: true, kind: KindBoolean},
+			vx:          &Visitor{value: int64Value(10)},
+			vy:          &Visitor{value: boolValue(true)},
 			op:          token.SHL, // "<<"
 			expectedErr: ErrBitwiseOperation,
 		},
@@ -130,7 +130,7 @@ func TestBitwise(t *testing.T) {
 
 	for _, tc := range tt {
 		tc := tc
-		name := fmt.Sprintf("%v %s %v", tc.vx.value, tc.op, tc.vy.value)
+		name := fmt.Sprintf("%v %s %v", tc.vx.value.Any(), tc.op, tc.vy.value.Any())
 		t.Run(name, func(t *testing.T) {
 			opPos := token.Pos(len(fmt.Sprintf("%v", tc.vx.value)) + 1)
 			be := &ast.BinaryExpr{
@@ -145,7 +145,7 @@ func TestBitwise(t *testing.T) {
 				t.Fatalf("expected err: %v, got: %v", tc.expectedErr, tc.v.err)
 			}
 
-			value, _ := tc.v.value.(int64)
+			value := tc.v.value.Int64()
 			if value != tc.expectedValue {
 				t.Fatalf("expected value: %v (%T), got: %v (%T)", tc.expectedValue, tc.expectedValue,
 					tc.v.value, tc.v.value)

@@ -11,5 +11,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package expr is the core of this library, it contains implementation to parse and evaluate mathematical and boolean expression.
+// Package expr hosts the implementation of string expression evaluator
+// to evaluate basic mathematical expression and boolean expression.
 package expr

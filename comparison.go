@@ -23,60 +23,58 @@ import (
 
 // comparison compares visitor X and visitor Y values. Numeric hierarchy will apply: complex128 > float64 > int64.
 func comparison(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
-	v.kind = KindBoolean
-	switch x := vx.value.(type) {
-	case complex128:
+	v.value.SetKind(KindBoolean)
+	switch vx.value.Kind() {
+	case KindImag:
 		// Treat y as complex number since x is a complex number.
-		switch y := vy.value.(type) {
-		case complex128:
-			compareComplex(v, x, y, binaryExpr.Op, binaryExpr.OpPos)
+		switch vy.value.Kind() {
+		case KindImag:
+			compareComplex(v, vx.value.Complex128(), vy.value.Complex128(), binaryExpr.Op, binaryExpr.OpPos)
 			return
-		case float64:
-			compareComplex(v, x, complex(y, 0), binaryExpr.Op, binaryExpr.OpPos)
+		case KindFloat:
+			compareComplex(v, vx.value.Complex128(), complex(vy.value.Float64(), 0), binaryExpr.Op, binaryExpr.OpPos)
 			return
-		case int64:
-			compareComplex(v, x, complex(float64(y), 0), binaryExpr.Op, binaryExpr.OpPos)
-			return
-		}
-	case float64:
-		switch y := vy.value.(type) {
-		case complex128: // Treat x as complex number since y is a complex number.
-			compareComplex(v, complex(x, 0), y, binaryExpr.Op, binaryExpr.OpPos)
-			return
-		case float64:
-			compareFloat(v, x, y, binaryExpr.Op)
-			return
-		case int64: // Treat y as float64 since x is a float64.
-			compareFloat(v, x, float64(y), binaryExpr.Op)
+		case KindInt:
+			compareComplex(v, vx.value.Complex128(), complex(float64(vy.value.Int64()), 0), binaryExpr.Op, binaryExpr.OpPos)
 			return
 		}
-	case int64:
+	case KindFloat:
+		switch vy.value.Kind() {
+		case KindImag: // Treat x as complex number since y is a complex number.
+			compareComplex(v, complex(vx.value.Float64(), 0), vy.value.Complex128(), binaryExpr.Op, binaryExpr.OpPos)
+			return
+		case KindFloat:
+			compareFloat(v, vx.value.Float64(), vy.value.Float64(), binaryExpr.Op)
+			return
+		case KindInt: // Treat y as float64 since x is a float64.
+			compareFloat(v, vx.value.Float64(), float64(vy.value.Int64()), binaryExpr.Op)
+			return
+		}
+	case KindInt:
 		// Treat x as y's type, since int64 hierarchy is at the bottom.
-		switch y := vy.value.(type) {
-		case complex128:
-			compareComplex(v, complex(float64(x), 0), y, binaryExpr.Op, binaryExpr.OpPos)
+		switch vy.value.Kind() {
+		case KindImag:
+			compareComplex(v, complex(float64(vx.value.Int64()), 0), vy.value.Complex128(), binaryExpr.Op, binaryExpr.OpPos)
 			return
-		case float64:
-			compareFloat(v, float64(x), y, binaryExpr.Op)
+		case KindFloat:
+			compareFloat(v, float64(vx.value.Int64()), vy.value.Float64(), binaryExpr.Op)
 			return
-		case int64:
-			compareInt(v, x, y, binaryExpr)
-			return
-		}
-	case bool:
-		y, ok := vy.value.(bool)
-		if ok {
-			compareBoolean(v, x, y, binaryExpr.Op, binaryExpr.OpPos)
+		case KindInt:
+			compareInt(v, vx.value.Int64(), vy.value.Int64(), binaryExpr)
 			return
 		}
-	case string:
-		y, ok := vy.value.(string)
-		if ok {
-			compareString(v, x, y, binaryExpr.Op)
+	case KindBoolean:
+		if vy.value.Kind() == KindBoolean {
+			compareBoolean(v, vx.value.Bool(), vy.value.Bool(), binaryExpr.Op, binaryExpr.OpPos)
+			return
+		}
+	case KindString:
+		if vy.value.Kind() == KindString {
+			compareString(v, vx.value.String(), vy.value.String(), binaryExpr.Op)
 			return
 		}
 	}
-	v.kind = KindIllegal
+	v.value.SetKind(KindIllegal)
 	v.err = newComparisonNonComparableError(v, binaryExpr) // Catch non-comparable values.
 }
 
@@ -91,10 +89,11 @@ func newComparisonNonComparableError(v *Visitor, e ast.Expr) error {
 func compareBoolean(v *Visitor, x, y bool, op token.Token, opPos token.Pos) {
 	switch op {
 	case token.EQL:
-		v.value = x == y
+		v.value = boolValue(x == y)
 	case token.NEQ:
-		v.value = x != y
+		v.value = boolValue(x != y)
 	default:
+		v.value = value{}
 		v.err = &SyntaxError{
 			Msg: "operator \"" + op.String() + "\" is not supported for comparing boolean values",
 			Pos: int(opPos),
@@ -107,17 +106,17 @@ func compareBoolean(v *Visitor, x, y bool, op token.Token, opPos token.Pos) {
 func compareString(v *Visitor, x, y string, op token.Token) {
 	switch op {
 	case token.EQL:
-		v.value = x == y
+		v.value = boolValue(x == y)
 	case token.NEQ:
-		v.value = x != y
+		v.value = boolValue(x != y)
 	case token.GTR:
-		v.value = x > y
+		v.value = boolValue(x > y)
 	case token.GEQ:
-		v.value = x >= y
+		v.value = boolValue(x >= y)
 	case token.LSS:
-		v.value = x < y
+		v.value = boolValue(x < y)
 	case token.LEQ:
-		v.value = x <= y
+		v.value = boolValue(x <= y)
 	}
 }
 
@@ -125,10 +124,11 @@ func compareString(v *Visitor, x, y string, op token.Token) {
 func compareComplex(v *Visitor, x, y complex128, op token.Token, opPos token.Pos) {
 	switch op {
 	case token.EQL:
-		v.value = x == y
+		v.value = boolValue(x == y)
 	case token.NEQ:
-		v.value = x != y
+		v.value = boolValue(x != y)
 	default:
+		v.value = value{}
 		v.err = &SyntaxError{
 			Msg: "operator \"" + op.String() + "\" is not supported for comparing complex numbers",
 			Pos: int(opPos),
@@ -141,33 +141,33 @@ func compareComplex(v *Visitor, x, y complex128, op token.Token, opPos token.Pos
 func compareFloat(v *Visitor, x, y float64, op token.Token) {
 	switch op {
 	case token.EQL:
-		v.value = x == y
+		v.value = boolValue(x == y)
 	case token.NEQ:
-		v.value = x != y
+		v.value = boolValue(x != y)
 	case token.GTR:
-		v.value = x > y
+		v.value = boolValue(x > y)
 	case token.GEQ:
-		v.value = x >= y
+		v.value = boolValue(x >= y)
 	case token.LSS:
-		v.value = x < y
+		v.value = boolValue(x < y)
 	case token.LEQ:
-		v.value = x <= y
+		v.value = boolValue(x <= y)
 	}
 }
 
 func compareInt(v *Visitor, x, y int64, binaryExpr *ast.BinaryExpr) {
 	switch binaryExpr.Op {
 	case token.EQL:
-		v.value = x == y
+		v.value = boolValue(x == y)
 	case token.NEQ:
-		v.value = x != y
+		v.value = boolValue(x != y)
 	case token.GTR:
-		v.value = x > y
+		v.value = boolValue(x > y)
 	case token.GEQ:
-		v.value = x >= y
+		v.value = boolValue(x >= y)
 	case token.LSS:
-		v.value = x < y
+		v.value = boolValue(x < y)
 	case token.LEQ:
-		v.value = x <= y
+		v.value = boolValue(x <= y)
 	}
 }

@@ -23,11 +23,11 @@ import (
 
 func bitwise(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
 	// numeric guards:
-	if vx.kind <= numeric_beg || vx.kind >= numeric_end {
+	if vx.value.Kind() <= numeric_beg || vx.value.Kind() >= numeric_end {
 		v.err = newBitwiseNonIntegerError(vx, binaryExpr.X)
 		return
 	}
-	if vy.kind <= numeric_beg || vy.kind >= numeric_end {
+	if vy.value.Kind() <= numeric_beg || vy.value.Kind() >= numeric_end {
 		v.err = newBitwiseNonIntegerError(vy, binaryExpr.Y)
 		return
 	}
@@ -57,40 +57,41 @@ func bitwise(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
 		}
 	}
 
-	v.kind = KindInt
+	v.value.SetKind(KindInt)
 	switch binaryExpr.Op {
 	case token.AND:
-		v.value = x & y
+		v.value = int64Value(x & y)
 	case token.OR:
-		v.value = x | y
+		v.value = int64Value(x | y)
 	case token.XOR:
-		v.value = x ^ y
+		v.value = int64Value(x ^ y)
 	case token.AND_NOT:
-		v.value = x &^ y
+		v.value = int64Value(x &^ y)
 	case token.SHL:
-		v.value = x << y
+		v.value = int64Value(x << y)
 	case token.SHR:
-		v.value = x >> y
+		v.value = int64Value(x >> y)
 	}
 }
 
 func newBitwiseNonIntegerError(v *Visitor, e ast.Expr) error {
 	s := conv.FormatExpr(e)
 	return &SyntaxError{
-		Msg: "result value of \"" + s + "\" is \"" + fmt.Sprintf("%v", v.value) + "\" which is not an integer",
+		Msg: "result value of \"" + s + "\" is \"" + fmt.Sprintf("%v", v.value.Any()) + "\" which is not an integer",
 		Pos: int(e.Pos()),
 		Err: ErrBitwiseOperation,
 	}
 }
 
-func convertToInt64(value interface{}) (int64, bool) {
-	switch val := value.(type) {
-	case float64:
-		if float64(int64(val)) == val { // only if it doesn't have decimal.
-			return int64(val), true
+func convertToInt64(val value) (int64, bool) {
+	switch val.Kind() {
+	case KindFloat:
+		f := val.Float64()
+		if float64(int64(f)) == f { // only if it doesn't have decimal.
+			return int64(f), true
 		}
-	case int64:
-		return val, true
+	case KindInt:
+		return val.Int64(), true
 	}
 	return 0, false
 }
