@@ -22,31 +22,30 @@ import (
 )
 
 func logical(v, vx, vy *Visitor, binaryExpr *ast.BinaryExpr) {
-	if vx.kind != KindBoolean {
+	if vx.value.Kind() != KindBoolean {
 		v.err = newLogicalNonBooleanError(vx, binaryExpr.X)
 		return
 	}
-	if vy.kind != KindBoolean {
+	if vy.value.Kind() != KindBoolean {
 		v.err = newLogicalNonBooleanError(vy, binaryExpr.Y)
 		return
 	}
 
-	x := vx.value.(bool)
-	y := vy.value.(bool)
+	x := vx.value.Bool()
+	y := vy.value.Bool()
 
-	v.kind = KindBoolean
+	v.value.SetKind(KindBoolean)
 	if binaryExpr.Op == token.LAND {
-		v.value = x && y
+		v.value = boolValue(x && y)
 		return
 	}
-
-	v.value = x || y // token.LOR
+	v.value = boolValue(x || y) // token.LOR
 }
 
 func newLogicalNonBooleanError(v *Visitor, e ast.Expr) error {
 	s := conv.FormatExpr(e)
 	return &SyntaxError{
-		Msg: "result of \"" + s + "\" is \"" + fmt.Sprintf("%v", v.value) + "\" which is not a boolean",
+		Msg: "result of \"" + s + "\" is \"" + fmt.Sprintf("%v", v.value.Any()) + "\" which is not a boolean",
 		Pos: v.pos,
 		Err: ErrLogicalOperation,
 	}

@@ -25,31 +25,39 @@ func TestLogical(t *testing.T) {
 	tt := []struct {
 		v, vx, vy      *Visitor
 		ops            []token.Token
-		expectedValues []interface{}
+		expectedValues []value
 		expectedErrs   []error
 	}{
 		{
 			v:              &Visitor{},
-			vx:             &Visitor{value: true, kind: KindBoolean},
+			vx:             &Visitor{value: boolValue(true)},
 			ops:            []token.Token{token.LAND, token.NEQ},
-			vy:             &Visitor{value: false, kind: KindBoolean},
-			expectedValues: []interface{}{false, true},
+			vy:             &Visitor{value: boolValue(false)},
+			expectedValues: []value{boolValue(false), boolValue(true)},
 			expectedErrs:   []error{nil, nil},
 		},
 		{
 			v:              &Visitor{},
-			vx:             &Visitor{value: "1", kind: KindInt},
+			vx:             &Visitor{value: boolValue(true)},
+			ops:            []token.Token{token.LAND, token.NEQ},
+			vy:             &Visitor{value: stringValue("1")},
+			expectedValues: []value{{}, {}},
+			expectedErrs:   []error{ErrLogicalOperation, ErrLogicalOperation},
+		},
+		{
+			v:              &Visitor{},
+			vx:             &Visitor{value: stringValue("1")},
 			ops:            []token.Token{token.LAND},
-			vy:             &Visitor{value: "false", kind: KindBoolean},
-			expectedValues: []interface{}{nil},
+			vy:             &Visitor{value: stringValue("false")},
+			expectedValues: []value{{}},
 			expectedErrs:   []error{ErrLogicalOperation},
 		},
 		{
 			v:              &Visitor{},
-			vx:             &Visitor{value: "false", kind: KindBoolean},
+			vx:             &Visitor{value: stringValue("false")},
 			ops:            []token.Token{token.LAND},
-			vy:             &Visitor{value: "1", kind: KindInt},
-			expectedValues: []interface{}{nil},
+			vy:             &Visitor{value: stringValue("1")},
+			expectedValues: []value{{}},
 			expectedErrs:   []error{ErrLogicalOperation},
 		},
 	}
@@ -66,7 +74,7 @@ func TestLogical(t *testing.T) {
 					Op: op,
 					Y:  &ast.BasicLit{Value: fmt.Sprintf("%v", tc.vy.value)},
 				}
-				name = fmt.Sprintf("%v %s %v", tc.vx.value, op, tc.vy.value)
+				name = fmt.Sprintf("%v %s %v", tc.vx.value.Any(), op, tc.vy.value.Any())
 			)
 
 			t.Run(name, func(t *testing.T) {
@@ -74,8 +82,8 @@ func TestLogical(t *testing.T) {
 				if !errors.Is(tc.v.err, expectedErr) {
 					t.Fatalf("expected err: %v, got: %v", expectedErr, tc.v.err)
 				}
-				if tc.v.value != expectedValue {
-					t.Fatalf("expected value: %v, got: %v", expectedValue, tc.v.value)
+				if tc.v.value.Any() != expectedValue.Any() {
+					t.Fatalf("expected value: %v, got: %v", expectedValue.Any(), tc.v.value.Any())
 				}
 			})
 		}

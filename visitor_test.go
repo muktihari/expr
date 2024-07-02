@@ -11,107 +11,143 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package expr_test
+package expr
 
 import (
 	"errors"
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"testing"
 
-	"github.com/muktihari/expr"
+	"github.com/google/go-cmp/cmp"
 )
 
-func TestVisit(t *testing.T) {
+func TestOptions(t *testing.T) {
 	tt := []struct {
-		in            string
-		expectedValue interface{}
-		expectedKind  expr.Kind
-		expectedErr   error
+		name    string
+		opts    []Option
+		options options
 	}{
 		{
-			in:           "<-a", // unary operator
-			expectedKind: expr.KindIllegal,
-			expectedErr:  expr.ErrUnsupportedOperator,
+			name:    "defaultOptions",
+			options: defaultOptions(),
 		},
 		{
-			in:            "'a' == 'a'",
-			expectedValue: true,
-			expectedKind:  expr.KindBoolean,
-		},
-		{
-			in:            "-(20+10i)",
-			expectedValue: -(20 + 10i),
-			expectedKind:  expr.KindImag,
-		},
-		{
-			in:            "true && 20 > 9",
-			expectedValue: true,
-			expectedKind:  expr.KindBoolean,
-		},
-		{
-			in:            "1 + 1",
-			expectedValue: float64(2),
-			expectedKind:  expr.KindFloat,
-		},
-		{
-			in:            "1 + 2 * 10",
-			expectedValue: float64(21),
-			expectedKind:  expr.KindFloat,
-		},
-		{
-			in:            "2.5 * 2.1",
-			expectedValue: float64(5.25),
-			expectedKind:  expr.KindFloat,
-		},
-		{
-			in:            "2.50 > 2.4",
-			expectedValue: true,
-			expectedKind:  expr.KindBoolean,
-		},
-		{
-			in:           "true & 2.4",
-			expectedKind: expr.KindIllegal,
-			expectedErr:  expr.ErrBitwiseOperation,
-		},
-		{
-			in:            "4 == 0b0100",
-			expectedValue: true,
-			expectedKind:  expr.KindBoolean,
-		},
-		{
-			in:           "true || !(!(10 * 100 %2))",
-			expectedKind: expr.KindIllegal,
-			expectedErr:  expr.ErrUnaryOperation,
-		},
-		{
-			in:           "!(!(10 * 100 %2)) || true ",
-			expectedKind: expr.KindIllegal,
-			expectedErr:  expr.ErrUnaryOperation,
-		},
-		{
-			in:            "expr == expr",
-			expectedValue: true,
-			expectedKind:  expr.KindBoolean,
+			name: "with options",
+			opts: []Option{
+				WithAllowIntegerDividedByZero(true),
+				WithNumericType(NumericTypeInt),
+			},
+			options: options{
+				allowIntegerDividedByZero: true,
+				numericType:               NumericTypeInt,
+			},
 		},
 	}
 
 	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			v := NewVisitor(tc.opts...)
+			if diff := cmp.Diff(v.options, tc.options,
+				cmp.AllowUnexported(options{}),
+			); diff != "" {
+				t.Fatal(diff)
+			}
+		})
+	}
+}
+
+func TestVisit(t *testing.T) {
+	tt := []struct {
+		in            string
+		expectedValue value
+		expectedKind  Kind
+		expectedErr   error
+	}{
+		{
+			in:           "<-a", // unary operator
+			expectedKind: KindIllegal,
+			expectedErr:  ErrUnsupportedOperator,
+		},
+		{
+			in:            "'a' == 'a'",
+			expectedValue: boolValue(true),
+			expectedKind:  KindBoolean,
+		},
+		{
+			in:            "-(20+10i)",
+			expectedValue: complex128Value(-(20 + 10i)),
+			expectedKind:  KindImag,
+		},
+		{
+			in:            "true && 20 > 9",
+			expectedValue: boolValue(true),
+			expectedKind:  KindBoolean,
+		},
+		{
+			in:            "1 + 1",
+			expectedValue: float64Value(2),
+			expectedKind:  KindFloat,
+		},
+		{
+			in:            "1 + 2 * 10",
+			expectedValue: float64Value(21),
+			expectedKind:  KindFloat,
+		},
+		{
+			in:            "2.5 * 2.1",
+			expectedValue: float64Value(5.25),
+			expectedKind:  KindFloat,
+		},
+		{
+			in:            "2.50 > 2.4",
+			expectedValue: boolValue(true),
+			expectedKind:  KindBoolean,
+		},
+		{
+			in:           "true & 2.4",
+			expectedKind: KindIllegal,
+			expectedErr:  ErrBitwiseOperation,
+		},
+		{
+			in:            "4 == 0b0100",
+			expectedValue: boolValue(true),
+			expectedKind:  KindBoolean,
+		},
+		{
+			in:           "true || !(!(10 * 100 %2))",
+			expectedKind: KindIllegal,
+			expectedErr:  ErrUnaryOperation,
+		},
+		{
+			in:           "!(!(10 * 100 %2)) || true ",
+			expectedKind: KindIllegal,
+			expectedErr:  ErrUnaryOperation,
+		},
+		{
+			in:            "expr == expr",
+			expectedValue: boolValue(true),
+			expectedKind:  KindBoolean,
+		},
+	}
+
+	for i, tc := range tt {
 		tc := tc
-		t.Run(tc.in, func(t *testing.T) {
+		t.Run(fmt.Sprintf("[%d] %s", i, tc.in), func(t *testing.T) {
 			e, err := parser.ParseExpr(tc.in)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			v := expr.NewVisitor(expr.WithNumericType(expr.NumericTypeAuto))
+			v := NewVisitor(WithNumericType(NumericTypeAuto))
 			ast.Walk(v, e)
 
 			if err := v.Err(); !errors.Is(err, tc.expectedErr) {
 				t.Fatalf("expected err: %v, got: %v", tc.expectedErr, err)
 			}
-			if val := v.ValueAny(); val != tc.expectedValue {
-				t.Fatalf("expected val: %v (%T), got: %v (%T)", tc.expectedValue, tc.expectedValue, val, val)
+			if val := v.ValueAny(); val != tc.expectedValue.Any() {
+				t.Fatalf("expected val: %v (%T), got: %v (%T)", tc.expectedValue.Any(), tc.expectedValue.Any(), val, val)
 			}
 			if kind := v.Kind(); kind != tc.expectedKind {
 				t.Fatalf("expected kind: %v, got: %v", tc.expectedKind, kind)
@@ -121,22 +157,22 @@ func TestVisit(t *testing.T) {
 
 	tt2 := []struct {
 		in       ast.Expr
-		expected *expr.Visitor
+		expected *Visitor
 	}{
 		{
 			in:       nil,
-			expected: &expr.Visitor{},
+			expected: &Visitor{},
 		},
 		{
 			in:       &ast.BadExpr{},
-			expected: &expr.Visitor{},
+			expected: &Visitor{},
 		},
 	}
 
 	for _, tc := range tt2 {
 		tc := tc
 		t.Run("", func(t *testing.T) {
-			v := &expr.Visitor{}
+			v := &Visitor{}
 			ast.Walk(v, tc.in)
 			if v.Err() != tc.expected.Err() {
 				t.Fatalf("expected err: %v, got: %v", tc.expected.Err(), v.Err())
@@ -153,18 +189,18 @@ func TestVisit(t *testing.T) {
 
 func TestKindString(t *testing.T) {
 	kinds := [...]string{
-		expr.KindIllegal: "KindIllegal",
-		expr.KindBoolean: "KindBoolean",
-		expr.KindInt:     "KindInt",
-		expr.KindFloat:   "KindFloat",
-		expr.KindImag:    "KindImag",
-		expr.KindString:  "KindString",
+		KindIllegal: "KindIllegal",
+		KindBoolean: "KindBoolean",
+		KindInt:     "KindInt",
+		KindFloat:   "KindFloat",
+		KindImag:    "KindImag",
+		KindString:  "KindString",
 	}
 
 	for kind, expected := range kinds {
 		kind, expected := kind, expected
 		t.Run(expected, func(t *testing.T) {
-			kind := expr.Kind(kind)
+			kind := Kind(kind)
 			if kind.String() != expected {
 				t.Fatalf("expected kind string: %s, got: %s", expected, kind.String())
 			}
@@ -173,7 +209,7 @@ func TestKindString(t *testing.T) {
 
 	// unsupported kinds
 	tt := []struct {
-		kind     expr.Kind
+		kind     Kind
 		expected string
 	}{
 		{kind: 255, expected: "kind(255)"},

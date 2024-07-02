@@ -24,40 +24,7 @@ import (
 	"github.com/muktihari/expr/internal/conv"
 )
 
-// Kind of value (value's type)
-type Kind byte
-
-const (
-	KindIllegal Kind = iota
-	KindBoolean      // true false
-
-	// Identifiers of numeric type
-	numeric_beg
-	KindInt   // 12345
-	KindFloat // 123.45
-	KindImag  // 123.45i
-	numeric_end
-
-	KindString // "abc" 'abc' `abc`
-)
-
-var kinds = [...]string{
-	KindIllegal: "KindIllegal",
-	KindBoolean: "KindBoolean",
-	KindInt:     "KindInt",
-	KindFloat:   "KindFloat",
-	KindImag:    "KindImag",
-	KindString:  "KindString",
-}
-
-func (k Kind) String() string {
-	if k < Kind(len(kinds)) {
-		return kinds[k]
-	}
-	return "kind(" + strconv.Itoa(int(k)) + ")"
-}
-
-type Option interface{ apply(o *options) }
+var pool = sync.Pool{New: func() interface{} { return new(Visitor) }}
 
 // NumericType determines what type of number represented in the expr string
 type NumericType byte
@@ -74,31 +41,31 @@ type options struct {
 	numericType               NumericType // treat numeric type as specific type
 }
 
+// Option is Visitor's option.
+type Option func(o *options)
+
+// WithAllowIntegerDividedByZero allows integer divided by zero operation.
 func WithAllowIntegerDividedByZero(v bool) Option {
-	return fnApply(func(o *options) { o.allowIntegerDividedByZero = v })
+	return func(o *options) { o.allowIntegerDividedByZero = v }
 }
 
+// WithNumericType treats all numeric types as v.
 func WithNumericType(v NumericType) Option {
-	return fnApply(func(o *options) { o.numericType = v })
+	return func(o *options) { o.numericType = v }
 }
 
-type fnApply func(o *options)
-
-func (f fnApply) apply(o *options) { f(o) }
-
-var _ ast.Visitor = &Visitor{}
+var _ ast.Visitor = (*Visitor)(nil)
 
 // Visitor satisfies ast.Visitor interface.
 type Visitor struct {
-	value   interface{}
+	value   value
 	err     error
 	pos     int
-	kind    Kind    // used to reduce the need to do type assertion on numeric operation.
 	options options // Visitor's Option
 }
 
-func defaultOptions() *options {
-	return &options{
+func defaultOptions() options {
+	return options{
 		allowIntegerDividedByZero: true,
 		numericType:               NumericTypeAuto,
 	}
@@ -108,24 +75,23 @@ func defaultOptions() *options {
 //   - allowIntegerDividedByZero: true
 //   - numericType:               NumericTypeAuto
 func NewVisitor(opts ...Option) *Visitor {
-	options := defaultOptions()
-	for _, opt := range opts {
-		opt.apply(options)
+	v := &Visitor{
+		options: defaultOptions(),
 	}
-
-	return &Visitor{
-		options: *options,
+	for i := range opts {
+		opts[i](&v.options)
 	}
+	return v
 }
 
 // Value returns visitor's value in string
-func (v *Visitor) Value() string { return fmt.Sprintf("%v", v.value) }
+func (v *Visitor) Value() string { return fmt.Sprintf("%v", v.value.Any()) }
 
 // ValueAny returns visitor's value interface{}
-func (v *Visitor) ValueAny() interface{} { return v.value }
+func (v *Visitor) ValueAny() interface{} { return v.value.Any() }
 
 // Kind returns visitor's kind
-func (v *Visitor) Kind() Kind { return v.kind }
+func (v *Visitor) Kind() Kind { return v.value.Kind() }
 
 // Err returns visitor's error
 func (v *Visitor) Err() error { return v.err }
@@ -152,31 +118,23 @@ func (v *Visitor) Visit(node ast.Node) ast.Visitor {
 	return v
 }
 
-var visitorPool = sync.Pool{
-	New: func() interface{} {
-		return new(Visitor)
-	},
-}
-
 func (v *Visitor) visitUnary(unaryExpr *ast.UnaryExpr) ast.Visitor {
 	switch unaryExpr.Op {
 	case token.NOT, token.ADD, token.SUB:
-		vx := visitorPool.Get().(*Visitor)
-		defer visitorPool.Put(vx)
-		vx.reset()
-		vx.options = v.options
+		vx := pool.Get().(*Visitor)
+		defer pool.Put(vx)
+		vx.reset(v.options)
 
-		ast.Walk(vx, unaryExpr.X)
+		vx.Visit(unaryExpr.X)
 		if vx.err != nil {
 			v.err = vx.err
 			return nil
 		}
 
-		v.kind = vx.kind
+		v.value.SetKind(vx.value.Kind())
 		switch unaryExpr.Op {
 		case token.NOT: // negation: !true -> false, !false -> true
-			res, ok := vx.value.(bool)
-			if !ok {
+			if vx.value.Kind() != KindBoolean {
 				s := conv.FormatExpr(unaryExpr.X)
 				v.err = &SyntaxError{
 					Msg: "could not do negation: result of \"" + s + "\" is \"" + fmt.Sprintf("%v", vx.value) + "\" not a boolean",
@@ -185,17 +143,17 @@ func (v *Visitor) visitUnary(unaryExpr *ast.UnaryExpr) ast.Visitor {
 				}
 				return nil
 			}
-			v.value = !res
+			v.value = boolValue(!vx.value.Bool())
 		case token.ADD:
 			v.value = vx.value
 		case token.SUB:
-			switch val := vx.value.(type) {
-			case complex128:
-				v.value = val * -1
-			case float64:
-				v.value = val * -1
-			case int64:
-				v.value = val * -1
+			switch vx.value.Kind() {
+			case KindInt:
+				v.value = int64Value(vx.value.Int64() * -1)
+			case KindFloat:
+				v.value = float64Value(vx.value.Float64() * -1)
+			case KindImag:
+				v.value = complex128Value(vx.value.Complex128() * -1)
 			}
 		}
 	default:
@@ -209,23 +167,21 @@ func (v *Visitor) visitUnary(unaryExpr *ast.UnaryExpr) ast.Visitor {
 }
 
 func (v *Visitor) visitBinary(binaryExpr *ast.BinaryExpr) ast.Visitor {
-	vx := visitorPool.Get().(*Visitor)
-	defer visitorPool.Put(vx)
-	vx.reset()
-	vx.options = v.options
+	vx := pool.Get().(*Visitor)
+	defer pool.Put(vx)
+	vx.reset(v.options)
 
-	ast.Walk(vx, binaryExpr.X)
+	vx.Visit(binaryExpr.X)
 	if vx.err != nil {
 		v.err = vx.err
 		return nil
 	}
 
-	vy := visitorPool.Get().(*Visitor)
-	defer visitorPool.Put(vy)
-	vy.reset()
-	vy.options = v.options
+	vy := pool.Get().(*Visitor)
+	defer pool.Put(vy)
+	vy.reset(v.options)
 
-	ast.Walk(vy, binaryExpr.Y)
+	vy.Visit(binaryExpr.Y)
 	if vy.err != nil {
 		v.err = vy.err
 		return nil
@@ -247,36 +203,35 @@ func (v *Visitor) visitBinary(binaryExpr *ast.BinaryExpr) ast.Visitor {
 func (v *Visitor) visitBasicLit(basicLit *ast.BasicLit) ast.Visitor {
 	switch basicLit.Kind {
 	case token.INT:
-		v.kind = KindInt
-		v.value, _ = strconv.ParseInt(basicLit.Value, 0, 64)
+		val, _ := strconv.ParseInt(basicLit.Value, 0, 64)
+		v.value = int64Value(val)
 	case token.FLOAT:
-		v.kind = KindFloat
-		v.value, _ = strconv.ParseFloat(basicLit.Value, 64)
+		val, _ := strconv.ParseFloat(basicLit.Value, 64)
+		v.value = float64Value(val)
 	case token.IMAG:
-		v.kind = KindImag
-		v.value, _ = strconv.ParseComplex(basicLit.Value, 128)
+		val, _ := strconv.ParseComplex(basicLit.Value, 128)
+		v.value = complex128Value(val)
 	case token.CHAR:
 		fallthrough // treat as string
 	case token.STRING:
-		v.kind = KindString
-		v.value = strings.TrimFunc(basicLit.Value, func(r rune) bool { return r == '\'' || r == '`' || r == '"' })
+		v.value = stringValue(strings.TrimFunc(basicLit.Value, func(r rune) bool { return r == '\'' || r == '`' || r == '"' }))
 	}
 	return nil
 }
 
 func (v *Visitor) visitIndent(indent *ast.Ident) ast.Visitor {
-	v.kind, v.value = KindString, indent.String()
+	v.value = stringValue(indent.String())
 	vb, err := strconv.ParseBool(indent.String())
 	if err != nil {
 		return nil
 	}
-	v.kind, v.value = KindBoolean, vb
+	v.value = boolValue(vb)
 	return nil
 }
 
-func (v *Visitor) reset() {
+func (v *Visitor) reset(o options) {
+	v.value = value{}
 	v.err = nil
-	v.kind = KindIllegal
 	v.pos = 0
-	v.value = nil
+	v.options = o
 }

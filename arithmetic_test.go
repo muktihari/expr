@@ -29,103 +29,103 @@ func TestArithmetic(t *testing.T) {
 		name          string
 		v, vx, vy     *Visitor
 		op            token.Token
-		expectedValue interface{}
+		expectedValue value
 		expectedErr   error
 	}{
 		{
 			name:          "arithmetic non numeric error: x numeric y boolean",
 			v:             newVisitor(NumericTypeAuto),
-			vx:            &Visitor{value: int64(1), kind: KindInt},
-			vy:            &Visitor{value: true, kind: KindBoolean},
+			vx:            &Visitor{value: int64Value(1)},
+			vy:            &Visitor{value: boolValue(true)},
 			op:            token.ADD,
-			expectedValue: nil,
+			expectedValue: value{},
 			expectedErr:   ErrArithmeticOperation,
 		},
 		{
 			name:          "arithmetic non numeric error: x boolean y numeric",
 			v:             newVisitor(NumericTypeAuto),
-			vx:            &Visitor{value: false, kind: KindBoolean},
-			vy:            &Visitor{value: int64(10), kind: KindInt},
+			vx:            &Visitor{value: boolValue(false)},
+			vy:            &Visitor{value: int64Value(10)},
 			op:            token.ADD,
-			expectedValue: nil,
+			expectedValue: value{},
 			expectedErr:   ErrArithmeticOperation,
 		},
 		{
 			name:          "arithmetic numeric complex",
 			v:             newVisitor(NumericTypeComplex),
-			vx:            &Visitor{value: (1 + 0i), kind: KindImag},
-			vy:            &Visitor{value: int64(2), kind: KindInt},
+			vx:            &Visitor{value: complex128Value(1 + 0i)},
+			vy:            &Visitor{value: int64Value(2)},
 			op:            token.ADD,
-			expectedValue: (3 + 0i),
+			expectedValue: complex128Value(3 + 0i),
 		},
 		{
 			name:          "arithmetic numeric float",
 			v:             newVisitor(NumericTypeFloat),
-			vx:            &Visitor{value: float64(1.5), kind: KindFloat},
-			vy:            &Visitor{value: int64(2), kind: KindInt},
+			vx:            &Visitor{value: float64Value(1.5)},
+			vy:            &Visitor{value: int64Value(2)},
 			op:            token.ADD,
-			expectedValue: 3.5,
+			expectedValue: float64Value(3.5),
 		},
 		{
 			name:          "arithmetic numeric int",
 			v:             newVisitor(NumericTypeInt),
-			vx:            &Visitor{value: float64(1.5), kind: KindFloat},
-			vy:            &Visitor{value: int64(2), kind: KindInt},
+			vx:            &Visitor{value: float64Value(1.5)},
+			vy:            &Visitor{value: int64Value(2)},
 			op:            token.ADD,
-			expectedValue: int64(3),
+			expectedValue: int64Value(3),
 		},
 		{
 			name:          "arithmetic numeric auto: x imag y int",
 			v:             newVisitor(NumericTypeAuto),
-			vx:            &Visitor{value: (1.5 + 1i), kind: KindImag},
-			vy:            &Visitor{value: int64(2), kind: KindInt},
+			vx:            &Visitor{value: complex128Value(1.5 + 1i)},
+			vy:            &Visitor{value: int64Value(2)},
 			op:            token.ADD,
-			expectedValue: (3.5 + 1i),
+			expectedValue: complex128Value(3.5 + 1i),
 		},
 		{
 			name:          "arithmetic numeric auto: x int y imag",
 			v:             newVisitor(NumericTypeAuto),
-			vx:            &Visitor{value: int64(2), kind: KindInt},
-			vy:            &Visitor{value: (1.5 + 1i), kind: KindImag},
+			vx:            &Visitor{value: int64Value(2)},
+			vy:            &Visitor{value: complex128Value(1.5 + 1i)},
 			op:            token.ADD,
-			expectedValue: (3.5 + 1i),
+			expectedValue: complex128Value(3.5 + 1i),
 		},
 		{
 			name:          "arithmetic numeric auto: x float y int",
 			v:             newVisitor(NumericTypeAuto),
-			vx:            &Visitor{value: float64(1.5), kind: KindFloat},
-			vy:            &Visitor{value: int64(2), kind: KindInt},
+			vx:            &Visitor{value: float64Value(1.5)},
+			vy:            &Visitor{value: int64Value(2)},
 			op:            token.ADD,
-			expectedValue: float64(3.5),
+			expectedValue: float64Value(3.5),
 		},
 		{
 			name:          "arithmetic numeric auto: x int y float",
 			v:             newVisitor(NumericTypeAuto),
-			vx:            &Visitor{value: float64(1.5), kind: KindFloat},
-			vy:            &Visitor{value: int64(2), kind: KindInt},
+			vx:            &Visitor{value: float64Value(1.5)},
+			vy:            &Visitor{value: int64Value(2)},
 			op:            token.ADD,
-			expectedValue: float64(3.5),
+			expectedValue: float64Value(3.5),
 		},
 		{
 			name:          "arithmetic numeric auto: x int y int",
 			v:             newVisitor(NumericTypeAuto),
-			vx:            &Visitor{value: int64(1), kind: KindInt},
-			vy:            &Visitor{value: int64(2), kind: KindInt},
+			vx:            &Visitor{value: int64Value(1)},
+			vy:            &Visitor{value: int64Value(2)},
 			op:            token.ADD,
-			expectedValue: float64(3),
+			expectedValue: float64Value(3),
 		},
 	}
 
-	for _, tc := range tt {
+	for i, tc := range tt {
 		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(fmt.Sprintf("[%d] %s", i, tc.name), func(t *testing.T) {
 			be := &ast.BinaryExpr{Op: tc.op}
 			arithmetic(tc.v, tc.vx, tc.vy, be)
 			if !errors.Is(tc.v.err, tc.expectedErr) {
 				t.Fatalf("expected err: %v, got: %v", tc.expectedErr, tc.v.err)
 			}
-			if tc.v.value != tc.expectedValue {
-				t.Fatalf("expected value: %v (%T), got: %v (%T)", tc.expectedValue, tc.expectedValue,
+			if tc.v.value.Any() != tc.expectedValue.Any() {
+				t.Fatalf("expected value: %v (%T), got: %v (%T)", tc.expectedValue.Any(), tc.expectedValue.Any(),
 					tc.v.value, tc.v.value)
 			}
 		})
@@ -140,43 +140,43 @@ func TestCalculateComplex(t *testing.T) {
 		name           string
 		v, vx, vy      *Visitor
 		ops            []token.Token
-		expectedValues []interface{}
+		expectedValues []value
 		expectedErrs   []error
 	}{
 		{
 			name:           "calculate integers",
 			v:              newComplexVisitor(),
-			vx:             &Visitor{value: int64(1), kind: KindInt},
-			vy:             &Visitor{value: int64(2), kind: KindInt},
+			vx:             &Visitor{value: int64Value(1)},
+			vy:             &Visitor{value: int64Value(2)},
 			ops:            []token.Token{token.ADD, token.SUB, token.MUL, token.QUO},
-			expectedValues: []interface{}{(3 + 0i), (-1 + 0i), (2 + 0i), (0.5 + 0i)},
+			expectedValues: []value{complex128Value(3 + 0i), complex128Value(-1 + 0i), complex128Value(2 + 0i), complex128Value(0.5 + 0i)},
 			expectedErrs:   []error{nil, nil, nil, nil},
 		},
 		{
 			name:           "calculate floats",
 			v:              newComplexVisitor(),
-			vx:             &Visitor{value: float64(1.0), kind: KindFloat},
-			vy:             &Visitor{value: float64(2.0), kind: KindFloat},
+			vx:             &Visitor{value: float64Value(1.0)},
+			vy:             &Visitor{value: float64Value(2.0)},
 			ops:            []token.Token{token.ADD, token.SUB, token.MUL, token.QUO},
-			expectedValues: []interface{}{(3 + 0i), (-1 + 0i), (2 + 0i), (0.5 + 0i)},
+			expectedValues: []value{complex128Value(3 + 0i), complex128Value(-1 + 0i), complex128Value(2 + 0i), complex128Value(0.5 + 0i)},
 			expectedErrs:   []error{nil, nil, nil, nil},
 		},
 		{
 			name:           "calculate complex numbers",
 			v:              newComplexVisitor(),
-			vx:             &Visitor{value: (1 + 1i), kind: KindImag},
-			vy:             &Visitor{value: (2 + 1i), kind: KindImag},
+			vx:             &Visitor{value: complex128Value(1 + 1i)},
+			vy:             &Visitor{value: complex128Value(2 + 1i)},
 			ops:            []token.Token{token.ADD, token.SUB, token.MUL, token.QUO},
-			expectedValues: []interface{}{(3 + 2i), (-1 + 0i), (1 + 3i), (0.6 + 0.2i)},
+			expectedValues: []value{complex128Value(3 + 2i), complex128Value(-1 + 0i), complex128Value(1 + 3i), complex128Value(0.6 + 0.2i)},
 			expectedErrs:   []error{nil, nil, nil, nil},
 		},
 		{
 			name:           "unsupported complex operation",
 			v:              newComplexVisitor(),
-			vx:             &Visitor{value: (1 + 1i), kind: KindImag},
-			vy:             &Visitor{value: (2 + 1i), kind: KindImag},
+			vx:             &Visitor{value: complex128Value(1 + 1i)},
+			vy:             &Visitor{value: complex128Value(2 + 1i)},
 			ops:            []token.Token{token.REM},
-			expectedValues: []interface{}{nil},
+			expectedValues: []value{{}},
 			expectedErrs:   []error{ErrArithmeticOperation},
 		},
 	}
@@ -186,15 +186,15 @@ func TestCalculateComplex(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			for i, op := range tc.ops {
 				i, op := i, op
-				name := fmt.Sprintf("%v%s%v", tc.vx.value, op, tc.vy.value)
+				name := fmt.Sprintf("%v%s%v", tc.vx.value.Any(), op, tc.vy.value.Any())
 				t.Run(name, func(t *testing.T) {
 					be := &ast.BinaryExpr{Op: op}
 					calculateComplex(tc.v, parseComplex(tc.vx.value), parseComplex(tc.vy.value), be.Op, be.OpPos)
 					if !errors.Is(tc.v.err, tc.expectedErrs[i]) {
 						t.Fatalf("expected err: %v, got: %v", tc.expectedErrs[i], tc.v.err)
 					}
-					if tc.v.value != tc.expectedValues[i] {
-						t.Fatalf("expected value: %v (%T), got: % (%T)", tc.expectedValues[i], tc.expectedValues[i],
+					if tc.v.value.Any() != tc.expectedValues[i].Any() {
+						t.Fatalf("expected value: %v (%T), got: %v (%T)", tc.expectedValues[i].Any(), tc.expectedValues[i].Any(),
 							tc.v.value, tc.v.value)
 					}
 				})
@@ -212,34 +212,34 @@ func TestCalculateFloat(t *testing.T) {
 		name           string
 		v, vx, vy      *Visitor
 		ops            []token.Token
-		expectedValues []interface{}
+		expectedValues []value
 		expectedErrs   []error
 	}{
 		{
 			name:           "calculate integers",
 			v:              newFloatVisitor(),
-			vx:             &Visitor{value: int64(10), kind: KindInt},
-			vy:             &Visitor{value: int64(3), kind: KindInt},
+			vx:             &Visitor{value: int64Value(10)},
+			vy:             &Visitor{value: int64Value(3)},
 			ops:            []token.Token{token.ADD, token.SUB, token.MUL, token.QUO, token.REM},
-			expectedValues: []interface{}{float64(13), float64(7), float64(30), float64(3.3333333333333335), float64(1)},
+			expectedValues: []value{float64Value(13), float64Value(7), float64Value(30), float64Value(3.3333333333333335), float64Value(1)},
 			expectedErrs:   []error{nil, nil, nil, nil, nil},
 		},
 		{
 			name:           "calculate floats",
 			v:              newFloatVisitor(),
-			vx:             &Visitor{value: float64(10.0), kind: KindFloat},
-			vy:             &Visitor{value: float64(3.0), kind: KindFloat},
+			vx:             &Visitor{value: float64Value(10.0)},
+			vy:             &Visitor{value: float64Value(3.0)},
 			ops:            []token.Token{token.ADD, token.SUB, token.MUL, token.QUO, token.REM},
-			expectedValues: []interface{}{float64(13), float64(7), float64(30), float64(3.3333333333333335), float64(1)},
+			expectedValues: []value{float64Value(13), float64Value(7), float64Value(30), float64Value(3.3333333333333335), float64Value(1)},
 			expectedErrs:   []error{nil, nil, nil, nil, nil},
 		},
 		{
 			name:           "calculate complex numbers",
 			v:              newFloatVisitor(),
-			vx:             &Visitor{value: (10 + 1i), kind: KindImag},
-			vy:             &Visitor{value: (3 + 1i), kind: KindImag},
+			vx:             &Visitor{value: complex128Value(10 + 1i)},
+			vy:             &Visitor{value: complex128Value(3 + 1i)},
 			ops:            []token.Token{token.ADD, token.SUB, token.MUL, token.QUO, token.REM},
-			expectedValues: []interface{}{float64(13), float64(7), float64(30), float64(3.3333333333333335), float64(1)},
+			expectedValues: []value{float64Value(13), float64Value(7), float64Value(30), float64Value(3.3333333333333335), float64Value(1)},
 			expectedErrs:   []error{nil, nil, nil, nil, nil},
 		},
 	}
@@ -249,15 +249,15 @@ func TestCalculateFloat(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			for i, op := range tc.ops {
 				i, op := i, op
-				name := fmt.Sprintf("%v%s%v", tc.vx.value, op, tc.vy.value)
+				name := fmt.Sprintf("%v%s%v", tc.vx.value.Any(), op, tc.vy.value.Any())
 				t.Run(name, func(t *testing.T) {
 					be := &ast.BinaryExpr{Op: op}
 					calculateFloat(tc.v, parseFloat(tc.vx.value), parseFloat(tc.vy.value), be.Op)
 					if !errors.Is(tc.v.err, tc.expectedErrs[i]) {
 						t.Fatalf("expected err: %v, got: %v", tc.expectedErrs[i], tc.v.err)
 					}
-					if tc.v.value != tc.expectedValues[i] {
-						t.Fatalf("expected value: %v (%T), got: %s (%T)", tc.expectedValues[i], tc.expectedValues[i],
+					if tc.v.value.Any() != tc.expectedValues[i].Any() {
+						t.Fatalf("expected value: %v (%T), got: %v (%T)", tc.expectedValues[i].Any(), tc.expectedValues[i].Any(),
 							tc.v.value, tc.v.value)
 					}
 				})
@@ -278,52 +278,52 @@ func TestCalculateInt(t *testing.T) {
 		name           string
 		v, vx, vy      *Visitor
 		ops            []token.Token
-		expectedValues []interface{}
+		expectedValues []value
 		expectedErrs   []error
 	}{
 		{
 			name:           "calculate integers",
 			v:              newIntVisitor(),
-			vx:             &Visitor{value: int64(10), kind: KindInt},
-			vy:             &Visitor{value: int64(3), kind: KindInt},
+			vx:             &Visitor{value: int64Value(10)},
+			vy:             &Visitor{value: int64Value(3)},
 			ops:            []token.Token{token.ADD, token.SUB, token.MUL, token.QUO, token.REM},
-			expectedValues: []interface{}{int64(13), int64(7), int64(30), int64(3), int64(1)},
+			expectedValues: []value{int64Value(13), int64Value(7), int64Value(30), int64Value(3), int64Value(1)},
 			expectedErrs:   []error{nil, nil, nil, nil, nil},
 		},
 		{
 			name:           "calculate integers allowIntegerDividedByZero == true",
 			v:              &Visitor{options: options{numericType: NumericTypeInt, allowIntegerDividedByZero: true}},
-			vx:             &Visitor{value: int64(10), kind: KindInt},
-			vy:             &Visitor{value: int64(0), kind: KindInt},
+			vx:             &Visitor{value: int64Value(10)},
+			vy:             &Visitor{value: int64Value(0)},
 			ops:            []token.Token{token.QUO},
-			expectedValues: []interface{}{int64(0)},
+			expectedValues: []value{int64Value(0)},
 			expectedErrs:   []error{nil},
 		},
 		{
 			name:           "calculate integers allowIntegerDividedByZero == false",
 			v:              &Visitor{options: options{numericType: NumericTypeInt, allowIntegerDividedByZero: false}},
-			vx:             &Visitor{value: int64(10), kind: KindInt},
-			vy:             &Visitor{value: int64(0), kind: KindInt},
+			vx:             &Visitor{value: int64Value(10)},
+			vy:             &Visitor{value: int64Value(0)},
 			ops:            []token.Token{token.QUO},
-			expectedValues: []interface{}{nil},
+			expectedValues: []value{{}},
 			expectedErrs:   []error{ErrIntegerDividedByZero},
 		},
 		{
 			name:           "calculate floats",
 			v:              newIntVisitor(),
-			vx:             &Visitor{value: float64(10.0), kind: KindFloat},
-			vy:             &Visitor{value: float64(3.0), kind: KindFloat},
+			vx:             &Visitor{value: float64Value(10.0)},
+			vy:             &Visitor{value: float64Value(3.0)},
 			ops:            []token.Token{token.ADD, token.SUB, token.MUL, token.QUO, token.REM},
-			expectedValues: []interface{}{int64(13), int64(7), int64(30), int64(3), int64(1)},
+			expectedValues: []value{int64Value(13), int64Value(7), int64Value(30), int64Value(3), int64Value(1)},
 			expectedErrs:   []error{nil, nil, nil, nil, nil},
 		},
 		{
 			name:           "calculate complex numbers",
 			v:              newIntVisitor(),
-			vx:             &Visitor{value: (10 + 1i), kind: KindImag},
-			vy:             &Visitor{value: (3 + 1i), kind: KindImag},
+			vx:             &Visitor{value: complex128Value(10 + 1i)},
+			vy:             &Visitor{value: complex128Value(3 + 1i)},
 			ops:            []token.Token{token.ADD, token.SUB, token.MUL, token.QUO, token.REM},
-			expectedValues: []interface{}{int64(13), int64(7), int64(30), int64(3), int64(1)},
+			expectedValues: []value{int64Value(13), int64Value(7), int64Value(30), int64Value(3), int64Value(1)},
 			expectedErrs:   []error{nil, nil, nil, nil, nil},
 		},
 	}
@@ -333,15 +333,15 @@ func TestCalculateInt(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			for i, op := range tc.ops {
 				i, op := i, op
-				name := fmt.Sprintf("%v%s%v", tc.vx.value, op, tc.vy.value)
+				name := fmt.Sprintf("%v%s%v", tc.vx.value.Any(), op, tc.vy.value.Any())
 				t.Run(name, func(t *testing.T) {
 					be := &ast.BinaryExpr{Op: op}
 					calculateInt(tc.v, parseInt(tc.vx.value), parseInt(tc.vy.value), tc.vy.pos, be.Op)
 					if !errors.Is(tc.v.err, tc.expectedErrs[i]) {
 						t.Fatalf("expected err: %v, got: %v", tc.expectedErrs[i], tc.v.err)
 					}
-					if tc.v.value != tc.expectedValues[i] {
-						t.Fatalf("expected value: %v (%T), got: %v (%T)", tc.expectedValues[i], tc.expectedValues[i],
+					if tc.v.value.Any() != tc.expectedValues[i].Any() {
+						t.Fatalf("expected value: %v (%T), got: %v (%T)", tc.expectedValues[i].Any(), tc.expectedValues[i].Any(),
 							tc.v.value, tc.v.value)
 					}
 				})
@@ -351,15 +351,15 @@ func TestCalculateInt(t *testing.T) {
 }
 
 func TestParseInvalidValue(t *testing.T) {
-	i64 := parseInt("invalid")
+	i64 := parseInt(stringValue("invalid"))
 	if i64 != 0 {
 		t.Fatalf("expected 0, got: %v", i64)
 	}
-	f64 := parseFloat(true)
+	f64 := parseFloat(boolValue(true))
 	if f64 != 0 {
 		t.Fatalf("expected 0, got: %v", f64)
 	}
-	c128 := parseComplex(false)
+	c128 := parseComplex(boolValue(false))
 	if c128 != 0 {
 		t.Fatalf("expected 0, got: %v", c128)
 	}

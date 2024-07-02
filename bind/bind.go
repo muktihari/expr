@@ -112,11 +112,11 @@ type SyntaxError struct {
 	Err   error
 }
 
-func (s SyntaxError) Error() string {
+func (s *SyntaxError) Error() string {
 	return fmt.Sprintf("%s [value:\"%s\",beg:%d,end:%d]: %v", s.Msg, s.Value, s.Begin, s.End, s.Err)
 }
 
-func (s SyntaxError) Unwrap() error { return s.Err }
+func (s *SyntaxError) Unwrap() error { return s.Err }
 
 // Bind binds keyvals values into s, key should be a string and val can be any. If keyvals is nil, s will be returned.
 func (b *Binder) Bind(s string, keyvals ...interface{}) (string, error) {
@@ -143,21 +143,19 @@ func (b *Binder) Bind(s string, keyvals ...interface{}) (string, error) {
 	prefix, suffix := b.Ident.Prefix, b.Ident.Suffix
 	lenPrefix, lenSuffix := len(prefix), len(suffix)
 
-	m := make(map[string]string, len(keyvals)/2)
+	m := make(map[string]string)
 	for i := 0; i < len(keyvals); i += 2 {
 		key, ok := keyvals[i].(string)
 		if !ok {
 			return "", fmt.Errorf("key '%v' is not a string, err: %w", key, ErrKeyIsNotAString)
 		}
-		val := b.Formatter(keyvals[i+1])
-		key = prefix + key + suffix
-		m[key] = val
+		m[key] = b.Formatter(keyvals[i+1])
 	}
 
 	var isPrefixBegin, isBreakBySuffix bool
 	var begin, end int
 
-	strbuf := new(strings.Builder)
+	var strbuf strings.Builder
 	var cur int
 	for i := 0; i < len(s); i++ {
 		if !isPrefixBegin {
@@ -176,7 +174,7 @@ func (b *Binder) Bind(s string, keyvals ...interface{}) (string, error) {
 				i += lenSuffix - 1
 
 				strbuf.WriteString(s[cur:begin])
-				strbuf.WriteString(m[s[begin:end]])
+				strbuf.WriteString(m[s[begin+lenPrefix:end-lenSuffix]])
 				cur = end
 
 				isPrefixBegin = false
@@ -190,7 +188,7 @@ func (b *Binder) Bind(s string, keyvals ...interface{}) (string, error) {
 		if !(unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '-') {
 			end = i
 			strbuf.WriteString(s[cur:begin])
-			strbuf.WriteString(m[s[begin:end]])
+			strbuf.WriteString(m[s[begin+lenPrefix:end-lenSuffix]])
 			cur = end
 
 			isPrefixBegin = false
@@ -238,19 +236,19 @@ func Format(v interface{}) string {
 	case complex128:
 		return strconv.FormatComplex(val, 'f', -1, 128)
 	case string:
-		return "\"" + val + "\""
+		return strconv.Quote(val)
 	case bool:
 		return strconv.FormatBool(val)
 	case error:
-		return "\"" + val.Error() + "\""
+		return strconv.Quote(val.Error())
 	case fmt.Stringer:
-		return "\"" + val.String() + "\""
+		return strconv.Quote(val.String())
 	default: // slower but it can handle "{}" "[1, 2]" "<nil>", etc.
 		s := fmt.Sprintf("%v", v) // e.g. int32(2) -> 2
 		if idx := strings.IndexFunc(s, func(r rune) bool {
 			return r == '[' || r == ']' || r == '{' || r == '}' || r == '<' || r == '>'
 		}); idx != -1 {
-			return "\"" + s + "\""
+			return strconv.Quote(s)
 		}
 		return s
 	}

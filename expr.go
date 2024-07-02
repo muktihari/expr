@@ -14,7 +14,6 @@
 package expr
 
 import (
-	"go/ast"
 	"go/parser"
 )
 
@@ -39,24 +38,31 @@ func Any(str string) (interface{}, error) {
 		return nil, err
 	}
 
-	v := NewVisitor(
-		WithAllowIntegerDividedByZero(true),
-		WithNumericType(NumericTypeAuto),
-	)
-	ast.Walk(v, expr)
+	var v Visitor
+	v.options = defaultOptions()
+	v.options.allowIntegerDividedByZero = true
+	v.options.numericType = NumericTypeAuto
 
+	v.Visit(expr)
 	if err := v.Err(); err != nil {
 		return nil, err
 	}
 
-	switch val := v.value.(type) {
-	case float64:
+	switch v.value.Kind() {
+	case KindBoolean:
+		return v.value.Bool(), nil
+	case KindInt:
+		return v.value.Int64(), nil
+	case KindFloat:
+		val := v.value.Float64()
 		if val == float64(int64(val)) {
 			return int64(val), nil
 		}
 		return val, nil
+	case KindImag:
+		return v.value.Complex128(), nil
 	default:
-		return val, nil
+		return v.value.String(), nil
 	}
 }
 
@@ -81,15 +87,16 @@ func Bool(str string) (bool, error) {
 		return false, err
 	}
 
-	v := NewVisitor()
-	ast.Walk(v, expr)
+	var v Visitor
+	v.options = defaultOptions()
 
+	v.Visit(expr)
 	if err := v.Err(); err != nil {
 		return false, err
 	}
 
-	if val, ok := v.value.(bool); ok {
-		return val, nil
+	if v.value.Kind() == KindBoolean {
+		return v.value.Bool(), nil
 	}
 
 	return false, ErrValueTypeMismatch
@@ -108,20 +115,22 @@ func Complex128(str string) (complex128, error) {
 		return 0, err
 	}
 
-	v := NewVisitor(WithNumericType(NumericTypeComplex))
-	ast.Walk(v, expr)
+	var v Visitor
+	v.options = defaultOptions()
+	v.options.numericType = NumericTypeComplex
 
+	v.Visit(expr)
 	if err := v.Err(); err != nil {
 		return 0, err
 	}
 
-	switch val := v.value.(type) {
-	case complex128:
-		return val, nil
-	case float64:
-		return complex(val, 0), nil
-	case int64:
-		return complex(float64(val), 0), nil
+	switch v.value.Kind() {
+	case KindImag:
+		return v.value.Complex128(), nil
+	case KindFloat:
+		return complex(v.value.Float64(), 0), nil
+	case KindInt:
+		return complex(float64(v.value.Int64()), 0), nil
 	}
 
 	return 0, ErrValueTypeMismatch
@@ -141,20 +150,22 @@ func Float64(str string) (float64, error) {
 		return 0, err
 	}
 
-	v := NewVisitor(WithNumericType(NumericTypeFloat))
-	ast.Walk(v, expr)
+	var v Visitor
+	v.options = defaultOptions()
+	v.options.numericType = NumericTypeFloat
 
+	v.Visit(expr)
 	if err := v.Err(); err != nil {
 		return 0, err
 	}
 
-	switch val := v.value.(type) {
-	case complex128:
-		return real(val), nil
-	case float64:
-		return val, nil
-	case int64:
-		return float64(val), nil
+	switch v.value.Kind() {
+	case KindImag:
+		return real(v.value.Complex128()), nil
+	case KindFloat:
+		return v.value.Float64(), nil
+	case KindInt:
+		return float64(v.value.Int64()), nil
 	}
 
 	return 0, ErrValueTypeMismatch
@@ -192,23 +203,23 @@ func parseStringExprIntoInt64(str string, allowIntegerDividedByZero bool) (int64
 		return 0, err
 	}
 
-	v := NewVisitor(
-		WithNumericType(NumericTypeInt),
-		WithAllowIntegerDividedByZero(allowIntegerDividedByZero),
-	)
-	ast.Walk(v, expr)
+	var v Visitor
+	v.options = defaultOptions()
+	v.options.allowIntegerDividedByZero = allowIntegerDividedByZero
+	v.options.numericType = NumericTypeInt
 
+	v.Visit(expr)
 	if err := v.Err(); err != nil {
 		return 0, err
 	}
 
-	switch val := v.value.(type) {
-	case complex128:
-		return int64(real(val)), nil
-	case float64:
-		return int64(val), nil
-	case int64:
-		return val, nil
+	switch v.value.Kind() {
+	case KindImag:
+		return int64(real(v.value.Complex128())), nil
+	case KindFloat:
+		return int64(v.value.Float64()), nil
+	case KindInt:
+		return v.value.Int64(), nil
 	}
 
 	return 0, ErrValueTypeMismatch

@@ -39,7 +39,7 @@ const (
 type Transform struct {
 	Segmented      string
 	EquivalentForm string
-	Explaination   string
+	Explanation    string
 	Evaluated      string
 }
 
@@ -212,7 +212,7 @@ func explainBitwise(transform *Transform, xValue, yValue string, op token.Token)
 	ybits := fmt.Sprintf(formatter, int64(fy))
 
 	if op != token.SHL && op != token.SHR {
-		transform.Explaination = fmt.Sprintf("%s\n%s\n%s %s\n%s",
+		transform.Explanation = fmt.Sprintf("%s\n%s\n%s %s\n%s",
 			xbits, ybits,
 			strings.Repeat("-", (size*2)-(size*2/10)), operatorStringMap[op],
 			fmt.Sprintf(formatter, result))
@@ -229,6 +229,6 @@ func explainBitwise(transform *Transform, xValue, yValue string, op token.Token)
 		result = int64(fx) >> int64(fy)
 	}
 
-	transform.Explaination = fmt.Sprintf("%s %s-shifted by %d = %s",
+	transform.Explanation = fmt.Sprintf("%s %s-shifted by %d = %s",
 		xbits, shiftDirection, int64(fy), fmt.Sprintf(formatter, result))
 }
