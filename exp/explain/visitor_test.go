@@ -158,9 +158,9 @@ func TestVisit(t *testing.T) {
 
 			transforms := v.Value()
 
-			// Ignore Explaination
+			// Ignore Explanation
 			for i := range transforms {
-				transforms[i].Explaination = ""
+				transforms[i].Explanation = ""
 			}
 
 			if diff := cmp.Diff(transforms, tc.transforms); diff != "" {

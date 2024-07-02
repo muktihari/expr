@@ -22,7 +22,7 @@ import (
 // One step can have multiple equivalent forms, starts with original form until the final form.
 type Step struct {
 	EquivalentForms []string
-	Explaination    string
+	Explanation     string
 	Result          string
 }
 
@@ -43,7 +43,7 @@ func Explain(s string) ([]Step, error) {
 	for _, transform := range v.transforms {
 		step := Step{
 			EquivalentForms: []string{transform.Segmented},
-			Explaination:    transform.Explaination,
+			Explanation:     transform.Explanation,
 			Result:          transform.Evaluated,
 		}
 		if transform.Segmented != transform.EquivalentForm {
