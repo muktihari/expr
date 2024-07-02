@@ -38,6 +38,14 @@ func TestLogical(t *testing.T) {
 		},
 		{
 			v:              &Visitor{},
+			vx:             &Visitor{value: boolValue(true)},
+			ops:            []token.Token{token.LAND, token.NEQ},
+			vy:             &Visitor{value: stringValue("1")},
+			expectedValues: []value{{}, {}},
+			expectedErrs:   []error{ErrLogicalOperation, ErrLogicalOperation},
+		},
+		{
+			v:              &Visitor{},
 			vx:             &Visitor{value: stringValue("1")},
 			ops:            []token.Token{token.LAND},
 			vy:             &Visitor{value: stringValue("false")},

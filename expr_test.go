@@ -77,7 +77,7 @@ func TestAny(t *testing.T) {
 			}
 
 			if v != tc.Eq {
-				t.Fatalf("expected value: %f, got: %f", tc.Eq, v)
+				t.Fatalf("expected value: %T(%v), got: %T(%v)", tc.Eq, tc.Eq, v, v)
 			}
 		})
 	}

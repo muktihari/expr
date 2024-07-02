@@ -19,7 +19,44 @@ import (
 	"go/ast"
 	"go/parser"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
+
+func TestOptions(t *testing.T) {
+	tt := []struct {
+		name    string
+		opts    []Option
+		options options
+	}{
+		{
+			name:    "defaultOptions",
+			options: defaultOptions(),
+		},
+		{
+			name: "with options",
+			opts: []Option{
+				WithAllowIntegerDividedByZero(true),
+				WithNumericType(NumericTypeInt),
+			},
+			options: options{
+				allowIntegerDividedByZero: true,
+				numericType:               NumericTypeInt,
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			v := NewVisitor(tc.opts...)
+			if diff := cmp.Diff(v.options, tc.options,
+				cmp.AllowUnexported(options{}),
+			); diff != "" {
+				t.Fatal(diff)
+			}
+		})
+	}
+}
 
 func TestVisit(t *testing.T) {
 	tt := []struct {
@@ -96,9 +133,6 @@ func TestVisit(t *testing.T) {
 	}
 
 	for i, tc := range tt {
-		if i < 2 {
-			continue
-		}
 		tc := tc
 		t.Run(fmt.Sprintf("[%d] %s", i, tc.in), func(t *testing.T) {
 			e, err := parser.ParseExpr(tc.in)

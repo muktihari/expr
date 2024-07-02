@@ -117,9 +117,6 @@ func TestArithmetic(t *testing.T) {
 	}
 
 	for i, tc := range tt {
-		if i < 2 {
-			continue
-		}
 		tc := tc
 		t.Run(fmt.Sprintf("[%d] %s", i, tc.name), func(t *testing.T) {
 			be := &ast.BinaryExpr{Op: tc.op}

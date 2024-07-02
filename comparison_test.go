@@ -173,9 +173,6 @@ func TestComparison(t *testing.T) {
 	}
 
 	for i, tc := range tt {
-		if i < 3 {
-			continue
-		}
 		tc := tc
 
 		for j, op := range tc.ops {

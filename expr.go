@@ -61,10 +61,8 @@ func Any(str string) (interface{}, error) {
 		return val, nil
 	case KindImag:
 		return v.value.Complex128(), nil
-	case KindString:
-		return v.value.String(), nil
 	default:
-		return nil, nil
+		return v.value.String(), nil
 	}
 }
 
