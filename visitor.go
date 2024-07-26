@@ -112,7 +112,7 @@ func (v *Visitor) Visit(node ast.Node) ast.Visitor {
 	case *ast.BasicLit: // handle type: int, float, imag, char, string
 		return v.visitBasicLit(d)
 	case *ast.Ident: // handle type: bolean, string without quotation
-		return v.visitIndent(d)
+		return v.visitIdent(d)
 	}
 
 	return v
@@ -137,7 +137,7 @@ func (v *Visitor) visitUnary(unaryExpr *ast.UnaryExpr) ast.Visitor {
 			if vx.value.Kind() != KindBoolean {
 				s := conv.FormatExpr(unaryExpr.X)
 				v.err = &SyntaxError{
-					Msg: "could not do negation: result of \"" + s + "\" is \"" + fmt.Sprintf("%v", vx.value) + "\" not a boolean",
+					Msg: "could not do negation: result of \"" + s + "\" is \"" + fmt.Sprintf("%v", vx.value.Any()) + "\" not a boolean",
 					Pos: vx.pos,
 					Err: ErrUnaryOperation,
 				}
@@ -219,10 +219,10 @@ func (v *Visitor) visitBasicLit(basicLit *ast.BasicLit) ast.Visitor {
 	return nil
 }
 
-func (v *Visitor) visitIndent(indent *ast.Ident) ast.Visitor {
-	v.value = stringValue(indent.String())
+func (v *Visitor) visitIdent(indent *ast.Ident) ast.Visitor {
 	vb, err := strconv.ParseBool(indent.String())
 	if err != nil {
+		v.value = stringValue(indent.String()) // treat as string
 		return nil
 	}
 	v.value = boolValue(vb)
