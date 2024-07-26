@@ -17,31 +17,20 @@ Expr is a simple, lightweight and performant programming toolkit for evaluating 
 - Scientific            : 11e0
 ```
 
-## Expression Examples
-
-```js
-"1 + 1"             -> 2
-"1.0 / 2"           -> 0.5
-"2 < 2 + 2"         -> true
-"true && !false"    -> true
-"4 << 10"           -> 4096
-"0b0100 << 0b1010"  -> 4096 (0b1000000000000)
-"0x4 << 0xA"        -> 4096 (0x1000)
-"0o4 << 0o12"       -> 4096 (0o10000)
-"0b1000 | 0b1001"   -> 9 (0b1001)
-"(2+1i) + (2+2i)"   -> (4+3i)
-"0x4 << 0xA > 1024" -> true
-```
-
 ## Usage
 
 ### Bind
 
-For binding variables into expr string, see [Bind](./bind/README.md)
+For binding variables into expr string, see [Bind](./bind/README.md).
 
-### Explain (Experimental)
-
-For explaining step-by-step operations, see [Explain](./exp/explain/README.md)
+```go
+s := "{price} - ({price} * {discount-percentage})"
+v, _ := bind.Bind(s,
+    "price", 100,
+    "discount-percentage", 0.1,
+)
+fmt.Println(v) // "100 - (100 * 0.1)"
+```
 
 ### Any
 
@@ -176,6 +165,56 @@ For explaining step-by-step operations, see [Explain](./exp/explain/README.md)
     fmt.Printf("%d", v) // 11
 ```
 
-## License
+## Benchmark
 
-Expr is released under [Apache Licence 2.0](https://www.apache.org/licenses/LICENSE-2.0)
+Benchmark results for evaluating simple math expression in comparison to [github.com/expr-lang/expr](github.com/expr-lang/expr). Please note that this library only offers simple expression evaluation, while expr-lang may offer richer features. The purpose of this benchmark is to demonstrate how effective this library is at handling simple use case scenarios.
+
+```js
+goos: darwin; goarch: amd64; pkg: benchmark
+cpu: Intel(R) Core(TM) i5-5257U CPU @ 2.70GHz
+BenchmarkExprLangExpr-4    68866  17455 ns/op  12835 B/op  70 allocs/op
+BenchmarkMuktihariExpr-4  417950   2812 ns/op    872 B/op  24 allocs/op
+```
+
+Code:
+
+```go
+package benchmark_test
+
+import (
+	"testing"
+
+	exprlang "github.com/expr-lang/expr"
+	"github.com/muktihari/expr"
+	"github.com/muktihari/expr/bind"
+)
+
+func BenchmarkExprLangExpr(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+        const code = `price - (price * discountPercentage)`
+		env := map[string]interface{}{
+			"price":              10.0,
+			"discountPercentage": 0.15,
+		}
+		program, _ := exprlang.Compile(code, exprlang.Env(env))
+		val, _ := exprlang.Run(program, env)
+		if expected := float64(8.5); expected != val {
+			b.Fatalf("expected: %v, got: %v", expected, val)
+		}
+	}
+}
+
+func BenchmarkMuktihariExpr(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		const code = `{price} - ({price} * {discountPercentage})`
+		s, _ := bind.Bind(code,
+			"price", 10.0,
+			"discountPercentage", 0.15,
+		)
+		val, _ := expr.Any(s)
+		if expected := float64(8.5); expected != val {
+			b.Fatalf("expected: %v, got: %v", expected, val)
+		}
+	}
+}
+```
