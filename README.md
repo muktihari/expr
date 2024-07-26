@@ -191,7 +191,7 @@ import (
 
 func BenchmarkExprLangExpr(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-        const code = `price - (price * discountPercentage)`
+		const code = `price - (price * discountPercentage)`
 		env := map[string]interface{}{
 			"price":              10.0,
 			"discountPercentage": 0.15,
